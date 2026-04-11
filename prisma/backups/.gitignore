@@ -1,0 +1,2 @@
+# Backups do banco SQLite — não commitar
+*.bak

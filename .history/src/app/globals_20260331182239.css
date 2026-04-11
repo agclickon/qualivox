@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer base {
+  /* Tema Light (padrão) */
+  :root {
+    --background: #F0FDF4;
+    --foreground: #064E3B;
+    --primary: #10B981;
+    --primary-foreground: #ffffff;
+    --secondary: #34D399;
+    --secondary-foreground: #ffffff;
+    --accent: #D1FAE5;
+    --accent-foreground: #000000;
+    --muted: #D1FAE5;
+    --muted-foreground: #064E3B99;
+    --card: #F0FDF4;
+    --card-foreground: #064E3B;
+    --border: #064E3B20;
+    --destructive: #ef4444;
+    --destructive-foreground: #ffffff;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-serif: 'Georgia', serif;
+    --font-heading: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --radius: 8px;
+    --sidebar-width: 260px;
+    --header-height: 64px;
+  }
+
+  /* Tema Dark */
+  .dark {
+    --background: #011813;
+    --foreground: #D1FAE5;
+    --primary: #34D399;
+    --primary-foreground: #000000;
+    --secondary: #6EE7B7;
+    --secondary-foreground: #000000;
+    --accent: #064E3B;
+    --accent-foreground: #ffffff;
+    --muted: #04251c;
+    --muted-foreground: #D1FAE599;
+    --card: #022C22;
+    --card-foreground: #D1FAE5;
+    --border: #D1FAE520;
+    --destructive: #dc2626;
+    --destructive-foreground: #ffffff;
+    --success: #16a34a;
+    --warning: #d97706;
+  }
+
+  * {
+    border-color: var(--border);
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+@layer utilities {
+  .whitespace-pre-wrap {
+    white-space: pre-wrap;
+  }
+}
+
+@keyframes waveBar {
+  0%   { transform: scaleY(0.4); }
+  100% { transform: scaleY(1); }
+}

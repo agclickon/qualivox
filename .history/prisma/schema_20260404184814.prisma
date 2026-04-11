@@ -1,0 +1,429 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// SQLite não suporta enums nativos - usamos String com validação na aplicação
+// UserRole: "super_admin" | "admin" | "user"
+// LeadStatus: "novo" | "contatado" | "qualificado" | "em_negociacao" | "proposta_enviada" | "fechado_ganho" | "fechado_perdido"
+// QualificationLevel: "quente" | "morno" | "frio" | "nao_qualificado"
+// LeadSource: "whatsapp" | "website" | "indicacao" | "telefone" | "email" | "rede_social" | "evento" | "outro"
+// UrgencyLevel: "baixa" | "media" | "alta" | "critica"
+// MessageDirection: "incoming" | "outgoing"
+// MessageType: "text" | "image" | "audio" | "video" | "document" | "location" | "contact" | "sticker"
+// NotificationType: "novo_lead" | "mensagem_recebida" | "lead_atribuido" | "follow_up" | "meta_atingida" | "sistema" | "lembrete"
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String    @map("password_hash")
+  name            String
+  phone           String?
+  role            String    @default("user")
+  avatarUrl       String?   @map("avatar_url")
+  isActive        Boolean   @default(true) @map("is_active")
+  emailVerified   Boolean   @default(false) @map("email_verified")
+  lastLogin       DateTime? @map("last_login")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  leads           Lead[]    @relation("AssignedLeads")
+  createdLeads    Lead[]    @relation("CreatedLeads")
+  interactions    Interaction[]
+  sentMessages    ChatMessage[] @relation("SentMessages")
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  refreshTokens   RefreshToken[]
+  createdTags     Tag[]
+  createdTemplates MessageTemplate[] @relation("UserTemplates")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String   @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Lead {
+  id                 String   @id @default(uuid())
+  name               String
+  phone              String?
+  email              String?
+  whatsappNumber     String?  @map("whatsapp_number")
+  profilePicUrl      String?  @map("profile_pic_url")
+  status             String   @default("novo")
+  score              Int      @default(0)
+  qualificationLevel String   @default("nao_qualificado") @map("qualification_level")
+  source             String   @default("whatsapp")
+  companyName        String?  @map("company_name")
+  position           String?
+  budgetCents        Int?     @map("budget_cents")
+  urgency            String   @default("baixa")
+  lastInteraction    DateTime? @map("last_interaction")
+  tags               String   @default("[]")
+  notes              String?
+  customFields       String?  @map("custom_fields")
+  assignedToId       String?  @map("assigned_to_id")
+  createdById        String?  @map("created_by_id")
+  pipelineStageId    String?  @map("pipeline_stage_id")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  assignedTo    User?          @relation("AssignedLeads", fields: [assignedToId], references: [id])
+  createdBy     User?          @relation("CreatedLeads", fields: [createdById], references: [id])
+  pipelineStage PipelineStage? @relation(fields: [pipelineStageId], references: [id])
+  interactions  Interaction[]
+  conversations Conversation[]
+  aiAnalyses    AiAnalysis[]
+  leadTags      LeadTag[]
+  followUps     FollowUp[]
+
+  @@map("leads")
+}
+
+model PipelineStage {
+  id        String   @id @default(uuid())
+  name      String
+  order     Int
+  color     String   @default("#10B981")
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  leads Lead[]
+
+  @@map("pipeline_stages")
+}
+
+model Interaction {
+  id        String   @id @default(uuid())
+  leadId    String   @map("lead_id")
+  userId    String?  @map("user_id")
+  type      String
+  content   String
+  channel   String?
+  metadata  String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  lead       Lead        @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  user       User?       @relation(fields: [userId], references: [id])
+  aiAnalysis AiAnalysis?
+
+  @@map("interactions")
+}
+
+model Conversation {
+  id              String    @id @default(uuid())
+  leadId          String    @map("lead_id")
+  whatsappChatId  String?   @map("whatsapp_chat_id")
+  connectionId    String?   @map("connection_id")
+  isGroup         Boolean   @default(false) @map("is_group")
+  lastMessageAt   DateTime? @map("last_message_at")
+  unreadCount     Int       @default(0) @map("unread_count")
+  isArchived      Boolean   @default(false) @map("is_archived")
+  isPinned        Boolean   @default(false) @map("is_pinned")
+  labels          String?   @default("[]") @map("labels")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  lead     Lead      @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  connection WhatsappConnection? @relation(fields: [connectionId], references: [id])
+  messages  Message[]
+  followUps FollowUp[]
+  aiAnalyses AiAnalysis[] @relation("ConversationAiAnalyses")
+  conversationTags LeadTag[] @relation("ConversationLeadTags")
+
+  @@unique([whatsappChatId, connectionId])
+  @@map("conversations")
+}
+
+model Message {
+  id             String   @id @default(uuid())
+  conversationId String   @map("conversation_id")
+  connectionId   String?  @map("connection_id")
+  direction      String
+  content        String
+  messageType    String   @default("text") @map("message_type")
+  mediaUrl       String?  @map("media_url")
+  metadata       String?
+  externalId     String?  @unique @map("external_id")
+  isRead         Boolean  @default(false) @map("is_read")
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  connection   WhatsappConnection? @relation(fields: [connectionId], references: [id])
+
+  @@map("messages")
+}
+
+model WhatsappIntegration {
+  id          String   @id @default(uuid())
+  type        String   @default("webhook")
+  name        String
+  projectName String?
+  jsonContent String?  @default("{}")
+  url         String?
+  language    String?  @default("pt-BR")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  connections WhatsappConnection[]
+
+  @@map("whatsapp_integrations")
+}
+
+model WhatsappConnection {
+  id                 String   @id @default(uuid())
+  name               String
+  provider           String   @default("evolution")
+  status             String   @default("disconnected")
+  instanceName       String?  @map("instance_name")
+  phoneNumber        String?  @map("phone_number")
+  sessionId          String?  @map("session_id")
+  apiKey             String?  @map("api_key")
+  apiUrl             String?  @map("api_url")
+  webhookUrl         String?  @map("webhook_url")
+  integrationId      String?  @map("integration_id")
+  greetingMessage    String?  @map("greeting_message")
+  outOfHoursMessage  String?  @map("out_of_hours_message")
+  ratingMessage      String?  @map("rating_message")
+  promptId           String?  @map("prompt_id")
+  maxUseBotQueues    Int?     @map("max_use_bot_queues")
+  timeUseBotQueues   Int?     @map("time_use_bot_queues")
+  expiresTicketHours Int?     @map("expires_ticket_hours")
+  isDefault          Boolean  @default(false) @map("is_default")
+  session            String?  @default("")
+  qrcode             String?  @default("")
+  retries            Int      @default(0)
+  lastSyncAt         DateTime? @map("last_sync_at")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  integration WhatsappIntegration? @relation(fields: [integrationId], references: [id])
+  conversations Conversation[]
+  messages      Message[]
+  aiAnalyses    AiAnalysis[]
+  leadTags      LeadTag[]
+
+  @@map("whatsapp_connections")
+}
+
+model AiAnalysis {
+  id              String   @id @default(uuid())
+  leadId          String   @map("lead_id")
+  interactionId   String?  @unique @map("interaction_id")
+  conversationId  String?  @map("conversation_id")
+  connectionId    String?  @map("connection_id")
+  sentimentScore  Int?     @map("sentiment_score")
+  extractedData   String?  @map("extracted_data")
+  leadScore       Int?     @map("lead_score")
+  classification  String?
+  reasons         String   @default("[]")
+  recommendations String   @default("[]")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  lead        Lead         @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  interaction Interaction? @relation(fields: [interactionId], references: [id])
+  conversation Conversation? @relation("ConversationAiAnalyses", fields: [conversationId], references: [id])
+  connection   WhatsappConnection? @relation(fields: [connectionId], references: [id])
+
+  @@map("ai_analyses")
+}
+
+model MessageTemplate {
+  id        String   @id @default(uuid())
+  name      String
+  content   String
+  variables String   @default("[]")
+  category  String?
+  isActive  Boolean  @default(true) @map("is_active")
+  isGlobal  Boolean  @default(true) @map("is_global")
+  createdById String? @map("created_by_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  followUps FollowUp[]
+  createdBy User? @relation("UserTemplates", fields: [createdById], references: [id])
+
+  @@map("message_templates")
+}
+
+model Automation {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  trigger     String
+  actions     String
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  logs AutomationLog[]
+
+  @@map("automations")
+}
+
+model AutomationLog {
+  id           String   @id @default(uuid())
+  automationId String   @map("automation_id")
+  status       String
+  input        String?
+  output       String?
+  error        String?
+  executedAt   DateTime @default(now()) @map("executed_at")
+
+  automation Automation @relation(fields: [automationId], references: [id], onDelete: Cascade)
+
+  @@map("automation_logs")
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  senderId  String   @map("sender_id")
+  content   String
+  channel   String   @default("geral")
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sender User @relation("SentMessages", fields: [senderId], references: [id])
+
+  @@map("chat_messages")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String
+  title     String
+  message   String
+  data      String?
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Webhook {
+  id        String   @id @default(uuid())
+  url       String
+  events    String   @default("[]")
+  secret    String?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("webhooks")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  oldData   String?  @map("old_data")
+  newData   String?  @map("new_data")
+  ipAddress String?  @map("ip_address")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+model Setting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+model LgpdConsent {
+  id          String    @id @default(uuid())
+  leadId      String    @map("lead_id")
+  consentType String    @map("consent_type")
+  granted     Boolean   @default(false)
+  grantedAt   DateTime? @map("granted_at")
+  revokedAt   DateTime? @map("revoked_at")
+  ipAddress   String?   @map("ip_address")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@map("lgpd_consents")
+}
+
+// Tag catalog — fonte de verdade de todas as etiquetas
+model Tag {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  colorHex    String   @default("#10B981") @map("color_hex")
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdById String?  @map("created_by_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  createdBy User?    @relation(fields: [createdById], references: [id])
+  leadTags  LeadTag[]
+
+  @@map("tags")
+}
+
+// Associação lead <-> tag com rastreabilidade de origem
+model LeadTag {
+  id        String   @id @default(uuid())
+  leadId    String   @map("lead_id")
+  tagId     String   @map("tag_id")
+  connectionId String? @map("connection_id")
+  conversationId String? @map("conversation_id")
+  source    String   @default("manual") // "manual" | "ai" | "import"
+  appliedBy String?  @map("applied_by")
+  appliedAt DateTime @default(now()) @map("applied_at")
+
+  lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  tag  Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  connection   WhatsappConnection? @relation(fields: [connectionId], references: [id])
+  conversation Conversation? @relation("ConversationLeadTags", fields: [conversationId], references: [id])
+
+  @@unique([leadId, tagId, connectionId])
+  @@map("lead_tags")
+}
+
+model FollowUp {
+  id                String    @id @default(uuid())
+  leadId            String    @map("lead_id")
+  conversationId    String    @map("conversation_id")
+  sendAt            DateTime  @map("send_at")
+  message           String
+  templateId        String?   @map("template_id")
+  templateVariables String?   @map("template_variables")
+  status            String    @default("scheduled")
+  sentAt            DateTime? @map("sent_at")
+  lastError         String?   @map("last_error")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  lead         Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  conversation Conversation     @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  template     MessageTemplate? @relation(fields: [templateId], references: [id])
+
+  @@index([sendAt], map: "follow_ups_send_at_idx")
+  @@unique([leadId, sendAt], map: "follow_ups_lead_send_at_unique")
+  @@map("follow_ups")
+}

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find c:Devleadflow -name *.sql -type f)",
+      "Bash(ffmpeg -version)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\agcli\\.claude\\projects\\c--Dev-leadflow"
+    ]
+  }
+}

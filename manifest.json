@@ -1,0 +1,111 @@
+{
+  "version": "2.0.0",
+  "generatedAt": "2026-03-18T18:38:08.370Z",
+  "generator": "ForgeAI",
+  "project": {
+    "name": "Gestão de lead com IA",
+    "stack": "custom",
+    "stackLabel": "Personalizada (informar no briefing)"
+  },
+  "contents": {
+    "checklist": "PROJECT_CHECKLIST.md",
+    "prompt": "PROMPT_TECNICO.md",
+    "readme": "README.md",
+    "docs": [
+      {
+        "type": "technical",
+        "file": "docs/technical.md",
+        "title": "Documentação Técnica"
+      },
+      {
+        "type": "architecture",
+        "file": "docs/architecture.md",
+        "title": "Arquitetura do Sistema"
+      },
+      {
+        "type": "api",
+        "file": "docs/api.md",
+        "title": "Documentação da API"
+      },
+      {
+        "type": "installation",
+        "file": "docs/installation.md",
+        "title": "Guia de Instalação"
+      },
+      {
+        "type": "requirements",
+        "file": "docs/requirements.md",
+        "title": "Especificação de Requisitos"
+      },
+      {
+        "type": "user-guide",
+        "file": "docs/user-guide.md",
+        "title": "Guia do Usuário"
+      },
+      {
+        "type": "testing",
+        "file": "docs/testing.md",
+        "title": "Estratégia de Testes"
+      },
+      {
+        "type": "styles",
+        "file": "docs/styles.md",
+        "title": "Guia de Estilos"
+      }
+    ],
+    "styles": {
+      "guide": "docs/guia-de-estilos.md"
+    },
+    "infrastructure": {
+      "database": {
+        "schema": "infra/database/schema.sql",
+        "seed": "infra/database/seed.sql",
+        "readme": "infra/database/README.md"
+      },
+      "environment": "infra/environment/.env.example"
+    }
+  },
+  "vault": {
+    "count": 0,
+    "items": []
+  },
+  "stages": [
+    {
+      "name": "Planejamento",
+      "type": "planning",
+      "order": 1,
+      "status": "pending"
+    },
+    {
+      "name": "Design",
+      "type": "design",
+      "order": 2,
+      "status": "pending"
+    },
+    {
+      "name": "Desenvolvimento",
+      "type": "development",
+      "order": 3,
+      "status": "pending"
+    },
+    {
+      "name": "Testes",
+      "type": "testing",
+      "order": 4,
+      "status": "pending"
+    },
+    {
+      "name": "Deploy",
+      "type": "deploy",
+      "order": 5,
+      "status": "pending"
+    }
+  ],
+  "checklist": [
+    "Leia PROMPT_TECNICO.md primeiro",
+    "Revise todos os documentos em /docs",
+    "Configure banco de dados",
+    "Configure variáveis de ambiente",
+    "Siga o roadmap para desenvolvimento"
+  ]
+}

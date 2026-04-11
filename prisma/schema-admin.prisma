@@ -1,0 +1,78 @@
+// Schema do banco central de administração SaaS
+// Banco: data/admin/leadflow-admin.db (SQLite separado)
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/admin-client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("ADMIN_DATABASE_URL")
+}
+
+model Plan {
+  id                      String    @id @default(uuid())
+  name                    String    @unique
+  priceMonthly            Int       @default(0) @map("price_monthly")
+  maxLeads                Int       @default(50) @map("max_leads")
+  maxUsers                Int       @default(2) @map("max_users")
+  maxWhatsappConnections  Int       @default(1) @map("max_whatsapp_connections")
+  maxAgents               Int       @default(1) @map("max_agents")
+  // Feature flags (JSON string): { calendar_enabled, voice_enabled, webhooks_enabled, api_access, white_label }
+  features                String    @default("{}") @map("features")
+  isActive                Boolean   @default(true) @map("is_active")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  companies Company[]
+
+  @@map("plans")
+}
+
+model Company {
+  id            String    @id @default(uuid())
+  name          String
+  slug          String    @unique
+  email         String    @unique
+  phone         String?
+  cnpj          String?   @unique
+  planId        String    @map("plan_id")
+  // status: "trial" | "active" | "suspended" | "cancelled"
+  status        String    @default("trial")
+  trialEndsAt   DateTime? @map("trial_ends_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  plan          Plan      @relation(fields: [planId], references: [id])
+  tenantDb      TenantDatabase?
+  auditLogs     AdminAuditLog[]
+
+  @@map("companies")
+}
+
+model TenantDatabase {
+  id          String   @id @default(uuid())
+  companyId   String   @unique @map("company_id")
+  dbPath      String   @map("db_path")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  @@map("tenant_databases")
+}
+
+model AdminAuditLog {
+  id          String   @id @default(uuid())
+  companyId   String?  @map("company_id")
+  actorEmail  String   @map("actor_email")
+  action      String
+  resource    String
+  resourceId  String?  @map("resource_id")
+  details     String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  company     Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  @@map("admin_audit_logs")
+}
