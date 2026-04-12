@@ -88,15 +88,6 @@ export async function resolveTenant(userId: string): Promise<TenantContext | nul
     ? path.join(process.cwd(), "prisma", "dev.db") // Banco atual como default
     : path.join(TENANTS_DIR, `leadflow-${companyId}.db`)
 
-  // Se o banco isolado não existe, usa o default como fallback
-  if (!isDefault && !fs.existsSync(dbPath)) {
-    return {
-      companyId,
-      dbPath: path.join(process.cwd(), "prisma", "dev.db"),
-      isDefault: true
-    }
-  }
-
   return {
     companyId,
     dbPath,

@@ -78,15 +78,6 @@ export default function AdminPage() {
     adminName: "",
     newPassword: ""
   })
-  const [editSelectedFeatures, setEditSelectedFeatures] = useState<Record<string, boolean>>({
-    calendar_enabled: true,
-    voice_enabled: false,
-    webhooks_enabled: false,
-    api_access: false,
-    white_label: false,
-    ai_advanced: false,
-    analytics_premium: false
-  })
 
   // Modal state - Novo Plano
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
@@ -342,21 +333,6 @@ export default function AdminPage() {
       adminName: "",
       newPassword: ""
     })
-    // Carrega features salvas da empresa
-    try {
-      const saved = (company as any).customFeatures ? JSON.parse((company as any).customFeatures) : {}
-      setEditSelectedFeatures({
-        calendar_enabled: saved.calendar_enabled ?? true,
-        voice_enabled: saved.voice_enabled ?? false,
-        webhooks_enabled: saved.webhooks_enabled ?? false,
-        api_access: saved.api_access ?? false,
-        white_label: saved.white_label ?? false,
-        ai_advanced: saved.ai_advanced ?? false,
-        analytics_premium: saved.analytics_premium ?? false
-      })
-    } catch {
-      setEditSelectedFeatures({ calendar_enabled: true, voice_enabled: false, webhooks_enabled: false, api_access: false, white_label: false, ai_advanced: false, analytics_premium: false })
-    }
     setIsEditCompanyModalOpen(true)
   }
 
@@ -378,8 +354,7 @@ export default function AdminPage() {
           status: editCompanyFormData.status,
           trialDays: parseInt(editCompanyFormData.trialDays) || 0,
           adminName: editCompanyFormData.adminName || undefined,
-          newPassword: editCompanyFormData.newPassword || undefined,
-          customFeatures: editSelectedFeatures
+          newPassword: editCompanyFormData.newPassword || undefined
         })
       })
 
@@ -1121,42 +1096,6 @@ export default function AdminPage() {
                 )}
               </div>
             </div>
-
-            {/* Features Personalizadas */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Features Personalizadas</h4>
-              <div className="space-y-2">
-                {availableFeatures.map(feature => {
-                  const selectedPlan = plans.find(p => p.id === editCompanyFormData.planId)
-                  const isIncluded = selectedPlan && feature.included.includes(selectedPlan.name)
-                  const isSelected = editSelectedFeatures[feature.key] ?? false
-
-                  return (
-                    <div key={feature.key} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          id={`edit-${feature.key}`}
-                          checked={isSelected}
-                          onChange={(e) => setEditSelectedFeatures(prev => ({ ...prev, [feature.key]: e.target.checked }))}
-                          className="h-4 w-4"
-                        />
-                        <Label htmlFor={`edit-${feature.key}`} className="cursor-pointer">
-                          {feature.name}
-                          {isIncluded && <span className="ml-2 text-xs text-green-600">(incluído)</span>}
-                        </Label>
-                      </div>
-                      {!isIncluded && feature.price > 0 && (
-                        <span className="text-sm text-muted-foreground">
-                          +R$ {(feature.price / 100).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsEditCompanyModalOpen(false)}>
                 Cancelar

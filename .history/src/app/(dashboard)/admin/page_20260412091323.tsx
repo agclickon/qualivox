@@ -24,9 +24,6 @@ interface Company {
   name: string
   slug: string
   email: string
-  phone?: string
-  cnpj?: string
-  planId?: string
   status: string
   trialEndsAt: string | null
   plan: { name: string; priceMonthly: number }
@@ -61,31 +58,6 @@ export default function AdminPage() {
     password: "",
     planId: "",
     trialDays: "14"
-  })
-
-  // Modal state - Editar Empresa
-  const [isEditCompanyModalOpen, setIsEditCompanyModalOpen] = useState(false)
-  const [isEditCompanySubmitting, setIsEditCompanySubmitting] = useState(false)
-  const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null)
-  const [editCompanyFormData, setEditCompanyFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    cnpj: "",
-    planId: "",
-    status: "",
-    trialDays: "",
-    adminName: "",
-    newPassword: ""
-  })
-  const [editSelectedFeatures, setEditSelectedFeatures] = useState<Record<string, boolean>>({
-    calendar_enabled: true,
-    voice_enabled: false,
-    webhooks_enabled: false,
-    api_access: false,
-    white_label: false,
-    ai_advanced: false,
-    analytics_premium: false
   })
 
   // Modal state - Novo Plano
@@ -324,94 +296,6 @@ export default function AdminPage() {
       toast({ variant: "destructive", title: "Erro ao criar plano" })
     } finally {
       setIsPlanSubmitting(false)
-    }
-  }
-
-  function handleOpenEditCompany(company: Company) {
-    setEditingCompanyId(company.id)
-    setEditCompanyFormData({
-      name: company.name,
-      email: company.email,
-      phone: (company as any).phone || "",
-      cnpj: (company as any).cnpj || "",
-      planId: (company as any).planId || "",
-      status: company.status,
-      trialDays: company.trialEndsAt
-        ? String(Math.max(0, Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / 86400000)))
-        : "0",
-      adminName: "",
-      newPassword: ""
-    })
-    // Carrega features salvas da empresa
-    try {
-      const saved = (company as any).customFeatures ? JSON.parse((company as any).customFeatures) : {}
-      setEditSelectedFeatures({
-        calendar_enabled: saved.calendar_enabled ?? true,
-        voice_enabled: saved.voice_enabled ?? false,
-        webhooks_enabled: saved.webhooks_enabled ?? false,
-        api_access: saved.api_access ?? false,
-        white_label: saved.white_label ?? false,
-        ai_advanced: saved.ai_advanced ?? false,
-        analytics_premium: saved.analytics_premium ?? false
-      })
-    } catch {
-      setEditSelectedFeatures({ calendar_enabled: true, voice_enabled: false, webhooks_enabled: false, api_access: false, white_label: false, ai_advanced: false, analytics_premium: false })
-    }
-    setIsEditCompanyModalOpen(true)
-  }
-
-  async function handleUpdateCompany(e: React.FormEvent) {
-    e.preventDefault()
-    if (!editingCompanyId) return
-    setIsEditCompanySubmitting(true)
-
-    try {
-      const res = await fetch(`/api/admin/companies/${editingCompanyId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editCompanyFormData.name,
-          email: editCompanyFormData.email,
-          phone: editCompanyFormData.phone,
-          cnpj: editCompanyFormData.cnpj,
-          planId: editCompanyFormData.planId,
-          status: editCompanyFormData.status,
-          trialDays: parseInt(editCompanyFormData.trialDays) || 0,
-          adminName: editCompanyFormData.adminName || undefined,
-          newPassword: editCompanyFormData.newPassword || undefined,
-          customFeatures: editSelectedFeatures
-        })
-      })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || "Erro ao atualizar empresa")
-      }
-
-      toast({ title: "Empresa atualizada com sucesso!" })
-      setIsEditCompanyModalOpen(false)
-      setEditingCompanyId(null)
-      fetchCompanies()
-      fetchStats()
-    } catch (err: any) {
-      toast({ variant: "destructive", title: err.message || "Erro ao atualizar empresa" })
-    } finally {
-      setIsEditCompanySubmitting(false)
-    }
-  }
-
-  async function handleDeletePlan(planId: string, planName: string) {
-    if (!confirm(`Excluir o plano "${planName}"? Esta ação não pode ser desfeita.`)) return
-
-    try {
-      const res = await fetch(`/api/admin/plans/${planId}`, { method: "DELETE" })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Erro ao excluir plano")
-
-      toast({ title: "Plano excluído com sucesso" })
-      fetchPlans()
-    } catch (err: any) {
-      toast({ variant: "destructive", title: err.message || "Erro ao excluir plano" })
     }
   }
 
@@ -814,7 +698,7 @@ export default function AdminPage() {
                             size="sm"
                             variant="ghost"
                             className="h-8 w-8 p-0"
-                            onClick={() => handleOpenEditCompany(company)}
+                            onClick={() => alert("Editar em desenvolvimento")}
                             title="Editar"
                           >
                             <Edit className="h-4 w-4" />
@@ -987,9 +871,6 @@ export default function AdminPage() {
                         <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleOpenEditPlan(plan)} title="Editar">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDeletePlan(plan.id, plan.name)} title="Excluir">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
                       </div>
                     </div>
                   ))}
@@ -1011,164 +892,6 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Modal Editar Empresa */}
-      <Dialog open={isEditCompanyModalOpen} onOpenChange={setIsEditCompanyModalOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Empresa</DialogTitle>
-            <DialogDescription>Atualize os dados da empresa.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdateCompany} className="space-y-4">
-            {/* Dados da Empresa */}
-            <div className="space-y-2">
-              <Label>Razão Social / Nome da Empresa *</Label>
-              <Input
-                value={editCompanyFormData.name}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, name: e.target.value })}
-                placeholder="Minha Empresa LTDA"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>CNPJ</Label>
-                <Input
-                  value={editCompanyFormData.cnpj}
-                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, cnpj: e.target.value })}
-                  placeholder="00.000.000/0001-00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefone</Label>
-                <Input
-                  value={editCompanyFormData.phone}
-                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, phone: e.target.value })}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>E-mail corporativo *</Label>
-              <Input
-                type="email"
-                value={editCompanyFormData.email}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, email: e.target.value })}
-                placeholder="voce@empresa.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nome do Responsável</Label>
-              <Input
-                value={editCompanyFormData.adminName}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, adminName: e.target.value })}
-                placeholder="Nome completo do admin"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nova Senha <span className="text-muted-foreground text-xs">(deixe em branco para não alterar)</span></Label>
-              <Input
-                type="password"
-                value={editCompanyFormData.newPassword}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, newPassword: e.target.value })}
-                placeholder="Mínimo 8 caracteres"
-                minLength={editCompanyFormData.newPassword ? 8 : undefined}
-              />
-            </div>
-
-            {/* Plano e Trial */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Plano e Configurações</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Plano *</Label>
-                  <select
-                    value={editCompanyFormData.planId}
-                    onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, planId: e.target.value })}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  >
-                    <option value="">Selecione um plano</option>
-                    {plans.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} — R$ {(p.priceMonthly / 100).toFixed(2)}/mês</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <select
-                    value={editCompanyFormData.status}
-                    onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, status: e.target.value })}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  >
-                    <option value="trial">Trial</option>
-                    <option value="active">Ativo</option>
-                    <option value="suspended">Suspenso</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
-                </div>
-                {editCompanyFormData.status === "trial" && (
-                  <div className="space-y-2 col-span-2">
-                    <Label>Dias restantes de trial</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={editCompanyFormData.trialDays}
-                      onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, trialDays: e.target.value })}
-                      placeholder="14"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Features Personalizadas */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Features Personalizadas</h4>
-              <div className="space-y-2">
-                {availableFeatures.map(feature => {
-                  const selectedPlan = plans.find(p => p.id === editCompanyFormData.planId)
-                  const isIncluded = selectedPlan && feature.included.includes(selectedPlan.name)
-                  const isSelected = editSelectedFeatures[feature.key] ?? false
-
-                  return (
-                    <div key={feature.key} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          id={`edit-${feature.key}`}
-                          checked={isSelected}
-                          onChange={(e) => setEditSelectedFeatures(prev => ({ ...prev, [feature.key]: e.target.checked }))}
-                          className="h-4 w-4"
-                        />
-                        <Label htmlFor={`edit-${feature.key}`} className="cursor-pointer">
-                          {feature.name}
-                          {isIncluded && <span className="ml-2 text-xs text-green-600">(incluído)</span>}
-                        </Label>
-                      </div>
-                      {!isIncluded && feature.price > 0 && (
-                        <span className="text-sm text-muted-foreground">
-                          +R$ {(feature.price / 100).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditCompanyModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isEditCompanySubmitting}>
-                {isEditCompanySubmitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
-                Salvar Alterações
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
 
       {/* Modal Editar Plano */}
       <Dialog open={isEditPlanModalOpen} onOpenChange={setIsEditPlanModalOpen}>

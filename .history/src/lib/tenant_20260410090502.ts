@@ -88,15 +88,6 @@ export async function resolveTenant(userId: string): Promise<TenantContext | nul
     ? path.join(process.cwd(), "prisma", "dev.db") // Banco atual como default
     : path.join(TENANTS_DIR, `leadflow-${companyId}.db`)
 
-  // Se o banco isolado não existe, usa o default como fallback
-  if (!isDefault && !fs.existsSync(dbPath)) {
-    return {
-      companyId,
-      dbPath: path.join(process.cwd(), "prisma", "dev.db"),
-      isDefault: true
-    }
-  }
-
   return {
     companyId,
     dbPath,
@@ -211,51 +202,21 @@ export async function provisionTenant(input: ProvisionTenantInput): Promise<stri
   // Conecta ao novo banco
   const tenantPrisma = await getPrismaForTenant(companyId)
 
-  // Limpa dados do template — ordem respeita dependências FK
+  // Limpa dados do template (deixa apenas estrutura)
   // Nota: SQLite não tem TRUNCATE, usamos DELETE
   const tablesToClean = [
-    // Dependentes primeiro
-    "agent_knowledge_chunks",
-    "agent_knowledge",
-    "agents",
-    "webhook_deliveries",
-    "webhooks",
-    "automation_logs",
-    "automations",
-    "event_reminders",
-    "calendar_events",
-    "calendar_integrations",
-    "follow_ups",
-    "ai_analyses",
-    "conversation_transfers",
-    "lead_tags",
-    "notifications",
-    "audit_logs",
-    "chat_messages",
-    "messages",
-    "interactions",
-    "conversations",
-    "whatsapp_connections",
-    "whatsapp_integrations",
-    "refresh_tokens",
-    "lgpd_consents",
-    "tags",
-    "pipeline_stages",
-    "leads",
-    "message_templates",
-    "users",
-    "settings",
-    // Tabelas SaaS não devem existir no tenant isolado, mas limpa por segurança
-    "saas_audit_logs",
-    "saas_companies",
-    "saas_plans"
+    "users", "leads", "conversations", "messages", "interactions",
+    "tags", "lead_tags", "message_templates", "whatsapp_connections",
+    "agents", "agent_knowledge", "webhook_endpoints", "webhook_deliveries",
+    "calendar_integrations", "calendar_events", "event_reminders",
+    "follow_ups", "notifications", "audit_logs", "refresh_tokens"
   ]
 
   for (const table of tablesToClean) {
     try {
-      await tenantPrisma.$executeRawUnsafe(`DELETE FROM "${table}"`)
+      await tenantPrisma.$executeRawUnsafe(`DELETE FROM ${table}`)
     } catch {
-      // Ignora erros de tabela não existir
+      // Ignora erros de tabela não existir (pode haver diferenças)
     }
   }
 
@@ -277,17 +238,14 @@ export async function provisionTenant(input: ProvisionTenantInput): Promise<stri
   console.log(`[Tenant] Usuário admin criado: ${adminEmail}`)
 
   // Seed de configurações padrão
-  for (const item of [
-    { key: "company_name", value: companyName },
-    { key: "tenant_id", value: companyId },
-    { key: "created_at", value: new Date().toISOString() }
-  ]) {
-    try {
-      await tenantPrisma.setting.create({ data: item })
-    } catch {
-      // Ignora duplicatas
-    }
-  }
+  await tenantPrisma.setting.createMany({
+    data: [
+      { key: "company_name", value: companyName },
+      { key: "tenant_id", value: companyId },
+      { key: "created_at", value: new Date().toISOString() }
+    ],
+    skipDuplicates: true
+  })
 
   return dbPath
 }

@@ -88,15 +88,6 @@ export async function resolveTenant(userId: string): Promise<TenantContext | nul
     ? path.join(process.cwd(), "prisma", "dev.db") // Banco atual como default
     : path.join(TENANTS_DIR, `leadflow-${companyId}.db`)
 
-  // Se o banco isolado não existe, usa o default como fallback
-  if (!isDefault && !fs.existsSync(dbPath)) {
-    return {
-      companyId,
-      dbPath: path.join(process.cwd(), "prisma", "dev.db"),
-      isDefault: true
-    }
-  }
-
   return {
     companyId,
     dbPath,
@@ -277,17 +268,14 @@ export async function provisionTenant(input: ProvisionTenantInput): Promise<stri
   console.log(`[Tenant] Usuário admin criado: ${adminEmail}`)
 
   // Seed de configurações padrão
-  for (const item of [
-    { key: "company_name", value: companyName },
-    { key: "tenant_id", value: companyId },
-    { key: "created_at", value: new Date().toISOString() }
-  ]) {
-    try {
-      await tenantPrisma.setting.create({ data: item })
-    } catch {
-      // Ignora duplicatas
-    }
-  }
+  await tenantPrisma.setting.createMany({
+    data: [
+      { key: "company_name", value: companyName },
+      { key: "tenant_id", value: companyId },
+      { key: "created_at", value: new Date().toISOString() }
+    ],
+    skipDuplicates: true
+  })
 
   return dbPath
 }

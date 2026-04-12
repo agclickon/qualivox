@@ -671,13 +671,11 @@ model EventReminder {
 model SaasPlan {
   id                     String    @id @default(uuid())
   name                   String    @unique
-  description            String?   @map("description")
   priceMonthly           Int       @default(0) @map("price_monthly")
   maxLeads               Int       @default(50) @map("max_leads")
   maxUsers               Int       @default(2) @map("max_users")
   maxWhatsappConnections Int       @default(1) @map("max_whatsapp_connections")
   maxAgents              Int       @default(1) @map("max_agents")
-  maxStorage             Int       @default(1024) @map("max_storage")
   features               String    @default("{}") @map("features")
   isActive               Boolean   @default(true) @map("is_active")
   createdAt              DateTime  @default(now()) @map("created_at")

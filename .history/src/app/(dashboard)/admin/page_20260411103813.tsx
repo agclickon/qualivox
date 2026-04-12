@@ -24,9 +24,6 @@ interface Company {
   name: string
   slug: string
   email: string
-  phone?: string
-  cnpj?: string
-  planId?: string
   status: string
   trialEndsAt: string | null
   plan: { name: string; priceMonthly: number }
@@ -63,49 +60,10 @@ export default function AdminPage() {
     trialDays: "14"
   })
 
-  // Modal state - Editar Empresa
-  const [isEditCompanyModalOpen, setIsEditCompanyModalOpen] = useState(false)
-  const [isEditCompanySubmitting, setIsEditCompanySubmitting] = useState(false)
-  const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null)
-  const [editCompanyFormData, setEditCompanyFormData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    cnpj: "",
-    planId: "",
-    status: "",
-    trialDays: "",
-    adminName: "",
-    newPassword: ""
-  })
-  const [editSelectedFeatures, setEditSelectedFeatures] = useState<Record<string, boolean>>({
-    calendar_enabled: true,
-    voice_enabled: false,
-    webhooks_enabled: false,
-    api_access: false,
-    white_label: false,
-    ai_advanced: false,
-    analytics_premium: false
-  })
-
   // Modal state - Novo Plano
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false)
   const [isPlanSubmitting, setIsPlanSubmitting] = useState(false)
   const [planFormData, setPlanFormData] = useState({
-    name: "",
-    description: "",
-    priceMonthly: "",
-    maxUsers: "",
-    maxAgents: "",
-    maxLeads: "",
-    maxStorage: ""
-  })
-
-  // Modal state - Editar Plano
-  const [isEditPlanModalOpen, setIsEditPlanModalOpen] = useState(false)
-  const [isEditPlanSubmitting, setIsEditPlanSubmitting] = useState(false)
-  const [editingPlanId, setEditingPlanId] = useState<string | null>(null)
-  const [editPlanFormData, setEditPlanFormData] = useState({
     name: "",
     description: "",
     priceMonthly: "",
@@ -169,14 +127,9 @@ export default function AdminPage() {
     try {
       setIsLoading(true)
       const res = await fetch("/api/admin/companies")
-      console.log("[Admin] Status companies:", res.status)
       if (res.ok) {
         const data = await res.json()
-        console.log("[Admin] Companies data:", data)
         setCompanies(data.data?.companies || [])
-      } else {
-        const errorData = await res.json()
-        console.error("[Admin] Erro companies:", errorData)
       }
     } catch (err) {
       console.error("[Admin] Erro ao buscar companies:", err)
@@ -324,144 +277,6 @@ export default function AdminPage() {
       toast({ variant: "destructive", title: "Erro ao criar plano" })
     } finally {
       setIsPlanSubmitting(false)
-    }
-  }
-
-  function handleOpenEditCompany(company: Company) {
-    setEditingCompanyId(company.id)
-    setEditCompanyFormData({
-      name: company.name,
-      email: company.email,
-      phone: (company as any).phone || "",
-      cnpj: (company as any).cnpj || "",
-      planId: (company as any).planId || "",
-      status: company.status,
-      trialDays: company.trialEndsAt
-        ? String(Math.max(0, Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / 86400000)))
-        : "0",
-      adminName: "",
-      newPassword: ""
-    })
-    // Carrega features salvas da empresa
-    try {
-      const saved = (company as any).customFeatures ? JSON.parse((company as any).customFeatures) : {}
-      setEditSelectedFeatures({
-        calendar_enabled: saved.calendar_enabled ?? true,
-        voice_enabled: saved.voice_enabled ?? false,
-        webhooks_enabled: saved.webhooks_enabled ?? false,
-        api_access: saved.api_access ?? false,
-        white_label: saved.white_label ?? false,
-        ai_advanced: saved.ai_advanced ?? false,
-        analytics_premium: saved.analytics_premium ?? false
-      })
-    } catch {
-      setEditSelectedFeatures({ calendar_enabled: true, voice_enabled: false, webhooks_enabled: false, api_access: false, white_label: false, ai_advanced: false, analytics_premium: false })
-    }
-    setIsEditCompanyModalOpen(true)
-  }
-
-  async function handleUpdateCompany(e: React.FormEvent) {
-    e.preventDefault()
-    if (!editingCompanyId) return
-    setIsEditCompanySubmitting(true)
-
-    try {
-      const res = await fetch(`/api/admin/companies/${editingCompanyId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editCompanyFormData.name,
-          email: editCompanyFormData.email,
-          phone: editCompanyFormData.phone,
-          cnpj: editCompanyFormData.cnpj,
-          planId: editCompanyFormData.planId,
-          status: editCompanyFormData.status,
-          trialDays: parseInt(editCompanyFormData.trialDays) || 0,
-          adminName: editCompanyFormData.adminName || undefined,
-          newPassword: editCompanyFormData.newPassword || undefined,
-          customFeatures: editSelectedFeatures
-        })
-      })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || "Erro ao atualizar empresa")
-      }
-
-      toast({ title: "Empresa atualizada com sucesso!" })
-      setIsEditCompanyModalOpen(false)
-      setEditingCompanyId(null)
-      fetchCompanies()
-      fetchStats()
-    } catch (err: any) {
-      toast({ variant: "destructive", title: err.message || "Erro ao atualizar empresa" })
-    } finally {
-      setIsEditCompanySubmitting(false)
-    }
-  }
-
-  async function handleDeletePlan(planId: string, planName: string) {
-    if (!confirm(`Excluir o plano "${planName}"? Esta ação não pode ser desfeita.`)) return
-
-    try {
-      const res = await fetch(`/api/admin/plans/${planId}`, { method: "DELETE" })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || "Erro ao excluir plano")
-
-      toast({ title: "Plano excluído com sucesso" })
-      fetchPlans()
-    } catch (err: any) {
-      toast({ variant: "destructive", title: err.message || "Erro ao excluir plano" })
-    }
-  }
-
-  function handleOpenEditPlan(plan: typeof plans[0]) {
-    setEditingPlanId(plan.id)
-    setEditPlanFormData({
-      name: plan.name,
-      description: (plan as any).description || "",
-      priceMonthly: (plan.priceMonthly / 100).toFixed(2),
-      maxUsers: String(plan.maxUsers),
-      maxAgents: String(plan.maxAgents),
-      maxLeads: String(plan.maxLeads),
-      maxStorage: String(plan.maxStorage)
-    })
-    setIsEditPlanModalOpen(true)
-  }
-
-  async function handleUpdatePlan(e: React.FormEvent) {
-    e.preventDefault()
-    if (!editingPlanId) return
-    setIsEditPlanSubmitting(true)
-
-    try {
-      const res = await fetch(`/api/admin/plans/${editingPlanId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: editPlanFormData.name,
-          description: editPlanFormData.description,
-          priceMonthly: Math.round(parseFloat(editPlanFormData.priceMonthly) * 100),
-          maxUsers: parseInt(editPlanFormData.maxUsers),
-          maxAgents: parseInt(editPlanFormData.maxAgents),
-          maxLeads: parseInt(editPlanFormData.maxLeads),
-          maxStorage: parseInt(editPlanFormData.maxStorage)
-        })
-      })
-
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || "Erro ao atualizar plano")
-      }
-
-      toast({ title: "Plano atualizado com sucesso!" })
-      setIsEditPlanModalOpen(false)
-      setEditingPlanId(null)
-      fetchPlans()
-    } catch (err: any) {
-      toast({ variant: "destructive", title: err.message || "Erro ao atualizar plano" })
-    } finally {
-      setIsEditPlanSubmitting(false)
     }
   }
 
@@ -814,7 +629,7 @@ export default function AdminPage() {
                             size="sm"
                             variant="ghost"
                             className="h-8 w-8 p-0"
-                            onClick={() => handleOpenEditCompany(company)}
+                            onClick={() => alert("Editar em desenvolvimento")}
                             title="Editar"
                           >
                             <Edit className="h-4 w-4" />
@@ -838,163 +653,20 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="plans" className="space-y-4">
-          {/* Botão de Features */}
-          <div className="flex justify-end">
-            <Button size="sm" variant="outline" onClick={() => setIsFeaturesModalOpen(true)}>
-              <Settings className="h-4 w-4 mr-1" />
-              Features e Preços
-            </Button>
-          </div>
-
+        <TabsContent value="plans">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Planos Disponíveis</CardTitle>
-                <CardDescription>Gerencie os planos e limites do sistema</CardDescription>
+                <CardDescription>Gerencie os planos e limites</CardDescription>
               </div>
-              <Dialog open={isPlanModalOpen} onOpenChange={setIsPlanModalOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm">
-                    <Plus className="h-4 w-4 mr-1" />
-                    Novo Plano
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-[600px]">
-                  <DialogHeader>
-                    <DialogTitle>Novo Plano</DialogTitle>
-                    <DialogDescription>
-                      Crie um novo plano com limites e features específicas.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <form onSubmit={handleCreatePlan} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="planName">Nome do Plano *</Label>
-                      <Input
-                        id="planName"
-                        value={planFormData.name}
-                        onChange={(e) => setPlanFormData({ ...planFormData, name: e.target.value })}
-                        placeholder="Ex: Premium, Gold, Ultimate"
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="planDescription">Descrição</Label>
-                      <Input
-                        id="planDescription"
-                        value={planFormData.description}
-                        onChange={(e) => setPlanFormData({ ...planFormData, description: e.target.value })}
-                        placeholder="Descrição do plano"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="planPrice">Preço Mensal (R$) *</Label>
-                      <Input
-                        id="planPrice"
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={planFormData.priceMonthly}
-                        onChange={(e) => setPlanFormData({ ...planFormData, priceMonthly: e.target.value })}
-                        placeholder="99.90"
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="maxUsers">Máx. Usuários *</Label>
-                        <Input
-                          id="maxUsers"
-                          type="number"
-                          min="1"
-                          value={planFormData.maxUsers}
-                          onChange={(e) => setPlanFormData({ ...planFormData, maxUsers: e.target.value })}
-                          placeholder="3"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="maxAgents">Máx. Agentes *</Label>
-                        <Input
-                          id="maxAgents"
-                          type="number"
-                          min="1"
-                          value={planFormData.maxAgents}
-                          onChange={(e) => setPlanFormData({ ...planFormData, maxAgents: e.target.value })}
-                          placeholder="5"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="maxLeads">Máx. Leads *</Label>
-                        <Input
-                          id="maxLeads"
-                          type="number"
-                          min="1"
-                          value={planFormData.maxLeads}
-                          onChange={(e) => setPlanFormData({ ...planFormData, maxLeads: e.target.value })}
-                          placeholder="500"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="maxStorage">Storage (MB) *</Label>
-                        <Input
-                          id="maxStorage"
-                          type="number"
-                          min="1"
-                          value={planFormData.maxStorage}
-                          onChange={(e) => setPlanFormData({ ...planFormData, maxStorage: e.target.value })}
-                          placeholder="1024"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <DialogFooter>
-                      <Button type="button" variant="outline" onClick={() => setIsPlanModalOpen(false)}>
-                        Cancelar
-                      </Button>
-                      <Button type="submit" disabled={isPlanSubmitting}>
-                        {isPlanSubmitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Plus className="h-4 w-4 mr-1" />}
-                        Criar Plano
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </DialogContent>
-              </Dialog>
+              <Button size="sm" variant="outline" disabled>
+                <Plus className="h-4 w-4 mr-1" />
+                Novo Plano
+              </Button>
             </CardHeader>
             <CardContent>
-              {plans.length === 0 ? (
-                <p className="text-muted-foreground">Nenhum plano cadastrado</p>
-              ) : (
-                <div className="space-y-2">
-                  {plans.map((plan) => (
-                    <div key={plan.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{plan.name}</p>
-                          <span className="text-sm font-bold text-primary">
-                            R$ {(plan.priceMonthly / 100).toFixed(2)}/mês
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {plan.maxUsers} usuários · {plan.maxAgents} agentes · {plan.maxLeads} leads · {plan.maxStorage}MB storage
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => handleOpenEditPlan(plan)} title="Editar">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-red-600" onClick={() => handleDeletePlan(plan.id, plan.name)} title="Excluir">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <p className="text-muted-foreground">Funcionalidade em desenvolvimento</p>
             </CardContent>
           </Card>
         </TabsContent>
@@ -1011,299 +683,6 @@ export default function AdminPage() {
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Modal Editar Empresa */}
-      <Dialog open={isEditCompanyModalOpen} onOpenChange={setIsEditCompanyModalOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Editar Empresa</DialogTitle>
-            <DialogDescription>Atualize os dados da empresa.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdateCompany} className="space-y-4">
-            {/* Dados da Empresa */}
-            <div className="space-y-2">
-              <Label>Razão Social / Nome da Empresa *</Label>
-              <Input
-                value={editCompanyFormData.name}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, name: e.target.value })}
-                placeholder="Minha Empresa LTDA"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>CNPJ</Label>
-                <Input
-                  value={editCompanyFormData.cnpj}
-                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, cnpj: e.target.value })}
-                  placeholder="00.000.000/0001-00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Telefone</Label>
-                <Input
-                  value={editCompanyFormData.phone}
-                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, phone: e.target.value })}
-                  placeholder="(11) 99999-9999"
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>E-mail corporativo *</Label>
-              <Input
-                type="email"
-                value={editCompanyFormData.email}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, email: e.target.value })}
-                placeholder="voce@empresa.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nome do Responsável</Label>
-              <Input
-                value={editCompanyFormData.adminName}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, adminName: e.target.value })}
-                placeholder="Nome completo do admin"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nova Senha <span className="text-muted-foreground text-xs">(deixe em branco para não alterar)</span></Label>
-              <Input
-                type="password"
-                value={editCompanyFormData.newPassword}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, newPassword: e.target.value })}
-                placeholder="Mínimo 8 caracteres"
-                minLength={editCompanyFormData.newPassword ? 8 : undefined}
-              />
-            </div>
-
-            {/* Plano e Trial */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Plano e Configurações</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Plano *</Label>
-                  <select
-                    value={editCompanyFormData.planId}
-                    onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, planId: e.target.value })}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  >
-                    <option value="">Selecione um plano</option>
-                    {plans.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} — R$ {(p.priceMonthly / 100).toFixed(2)}/mês</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <select
-                    value={editCompanyFormData.status}
-                    onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, status: e.target.value })}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  >
-                    <option value="trial">Trial</option>
-                    <option value="active">Ativo</option>
-                    <option value="suspended">Suspenso</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
-                </div>
-                {editCompanyFormData.status === "trial" && (
-                  <div className="space-y-2 col-span-2">
-                    <Label>Dias restantes de trial</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={editCompanyFormData.trialDays}
-                      onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, trialDays: e.target.value })}
-                      placeholder="14"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Features Personalizadas */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Features Personalizadas</h4>
-              <div className="space-y-2">
-                {availableFeatures.map(feature => {
-                  const selectedPlan = plans.find(p => p.id === editCompanyFormData.planId)
-                  const isIncluded = selectedPlan && feature.included.includes(selectedPlan.name)
-                  const isSelected = editSelectedFeatures[feature.key] ?? false
-
-                  return (
-                    <div key={feature.key} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          id={`edit-${feature.key}`}
-                          checked={isSelected}
-                          onChange={(e) => setEditSelectedFeatures(prev => ({ ...prev, [feature.key]: e.target.checked }))}
-                          className="h-4 w-4"
-                        />
-                        <Label htmlFor={`edit-${feature.key}`} className="cursor-pointer">
-                          {feature.name}
-                          {isIncluded && <span className="ml-2 text-xs text-green-600">(incluído)</span>}
-                        </Label>
-                      </div>
-                      {!isIncluded && feature.price > 0 && (
-                        <span className="text-sm text-muted-foreground">
-                          +R$ {(feature.price / 100).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditCompanyModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isEditCompanySubmitting}>
-                {isEditCompanySubmitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
-                Salvar Alterações
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Editar Plano */}
-      <Dialog open={isEditPlanModalOpen} onOpenChange={setIsEditPlanModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Editar Plano</DialogTitle>
-            <DialogDescription>Atualize os dados e limites do plano.</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdatePlan} className="space-y-4">
-            <div className="space-y-2">
-              <Label>Nome do Plano *</Label>
-              <Input
-                value={editPlanFormData.name}
-                onChange={(e) => setEditPlanFormData({ ...editPlanFormData, name: e.target.value })}
-                placeholder="Ex: Premium"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Descrição</Label>
-              <Input
-                value={editPlanFormData.description}
-                onChange={(e) => setEditPlanFormData({ ...editPlanFormData, description: e.target.value })}
-                placeholder="Descrição do plano"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Preço Mensal (R$) *</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={editPlanFormData.priceMonthly}
-                onChange={(e) => setEditPlanFormData({ ...editPlanFormData, priceMonthly: e.target.value })}
-                placeholder="99.90"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Máx. Usuários *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={editPlanFormData.maxUsers}
-                  onChange={(e) => setEditPlanFormData({ ...editPlanFormData, maxUsers: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Máx. Agentes *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={editPlanFormData.maxAgents}
-                  onChange={(e) => setEditPlanFormData({ ...editPlanFormData, maxAgents: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Máx. Leads *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={editPlanFormData.maxLeads}
-                  onChange={(e) => setEditPlanFormData({ ...editPlanFormData, maxLeads: e.target.value })}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Storage (MB) *</Label>
-                <Input
-                  type="number"
-                  min="1"
-                  value={editPlanFormData.maxStorage}
-                  onChange={(e) => setEditPlanFormData({ ...editPlanFormData, maxStorage: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setIsEditPlanModalOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={isEditPlanSubmitting}>
-                {isEditPlanSubmitting ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Check className="h-4 w-4 mr-1" />}
-                Salvar Alterações
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Features */}
-      <Dialog open={isFeaturesModalOpen} onOpenChange={setIsFeaturesModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Features e Preços</DialogTitle>
-            <DialogDescription>
-              Configure as funcionalidades disponíveis e seus preços adicionais.
-              Features com preço 0 são incluídas em todos os planos.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-            {featuresConfig.map((feature) => (
-              <div key={feature.key} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1">
-                  <p className="font-medium">{feature.name}</p>
-                  <p className="text-sm text-muted-foreground">{feature.description}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={(feature.price / 100).toFixed(2)}
-                    onChange={(e) => handleUpdateFeaturePrice(feature.key, e.target.value)}
-                    className="w-24"
-                  />
-                  <span className="text-sm text-muted-foreground">/mês</span>
-                </div>
-              </div>
-            ))}
-          </div>
-          <DialogFooter>
-            <Button onClick={() => setIsFeaturesModalOpen(false)}>
-              <Check className="h-4 w-4 mr-1" />
-              Salvar Alterações
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

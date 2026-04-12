@@ -89,26 +89,13 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Busca o plano escolhido ou usa Pro como padrão
-    const selectedPlanId = planId
-    let selectedPlan = null
-    
-    if (selectedPlanId) {
-      selectedPlan = await prisma.saasPlan.findUnique({
-        where: { id: selectedPlanId }
-      })
-    }
-    
-    // Fallback para Pro se plano não encontrado
-    if (!selectedPlan) {
-      selectedPlan = await prisma.saasPlan.findUnique({
-        where: { name: "Pro" }
-      })
-    }
-    
-    if (!selectedPlan) {
+    // Busca o plano Pro (trial)
+    const proPlan = await prisma.saasPlan.findUnique({
+      where: { name: "Pro" }
+    })
+    if (!proPlan) {
       return NextResponse.json(
-        { success: false, error: { code: "PLAN_NOT_FOUND", message: "Plano não encontrado. Contate o suporte." } },
+        { success: false, error: { code: "PLAN_NOT_FOUND", message: "Plano Pro não encontrado. Contate o suporte." } },
         { status: 500 }
       )
     }
@@ -118,22 +105,9 @@ export async function POST(req: NextRequest) {
     const userId = crypto.randomUUID()
     const slug = generateSlug(companyName)
 
-    // Calcula data do fim do trial (dias personalizados ou 14 padrão)
-    const days = trialDays && !isNaN(trialDays) ? parseInt(trialDays) : 14
+    // Calcula data do fim do trial (14 dias)
     const trialEndsAt = new Date()
-    trialEndsAt.setDate(trialEndsAt.getDate() + days)
-
-    // Monta features customizadas se fornecidas
-    let customFeaturesJson = selectedPlan.features
-    if (customFeatures && typeof customFeatures === 'object') {
-      try {
-        const baseFeatures = JSON.parse(selectedPlan.features)
-        const mergedFeatures = { ...baseFeatures, ...customFeatures }
-        customFeaturesJson = JSON.stringify(mergedFeatures)
-      } catch {
-        // Mantém features do plano se erro
-      }
-    }
+    trialEndsAt.setDate(trialEndsAt.getDate() + 14)
 
     // Cria a empresa no banco central
     const company = await prisma.saasCompany.create({
@@ -144,10 +118,9 @@ export async function POST(req: NextRequest) {
         email: adminEmail,
         phone: phone || null,
         cnpj: cnpj ? cnpj.replace(/[^\d]/g, "") : null,
-        planId: selectedPlan.id,
+        planId: proPlan.id,
         status: "trial",
-        trialEndsAt,
-        customFeatures: customFeaturesJson !== selectedPlan.features ? customFeaturesJson : null
+        trialEndsAt
       }
     })
 

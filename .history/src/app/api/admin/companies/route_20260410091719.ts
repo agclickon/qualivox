@@ -17,8 +17,6 @@ async function getUser(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const user = await getUser(req)
   
-  console.log("[Admin Companies] User:", user?.email, "Role:", user?.role)
-  
   if (!user || user.role !== "super_admin") {
     return NextResponse.json(
       { success: false, error: { code: "UNAUTHORIZED", message: "Acesso restrito a super admin" } },
@@ -43,8 +41,6 @@ export async function GET(req: NextRequest) {
       },
       orderBy: { createdAt: "desc" }
     })
-    
-    console.log("[Admin Companies] Found:", companies.length, "companies")
 
     return NextResponse.json({
       success: true,

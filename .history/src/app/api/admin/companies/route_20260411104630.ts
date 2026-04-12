@@ -45,6 +45,21 @@ export async function GET(req: NextRequest) {
     })
     
     console.log("[Admin Companies] Found:", companies.length, "companies")
+      include: {
+        plan: {
+          select: {
+            name: true,
+            priceMonthly: true
+          }
+        },
+        _count: {
+          select: {
+            auditLogs: true
+          }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    })
 
     return NextResponse.json({
       success: true,

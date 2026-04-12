@@ -74,18 +74,7 @@ export default function AdminPage() {
     cnpj: "",
     planId: "",
     status: "",
-    trialDays: "",
-    adminName: "",
-    newPassword: ""
-  })
-  const [editSelectedFeatures, setEditSelectedFeatures] = useState<Record<string, boolean>>({
-    calendar_enabled: true,
-    voice_enabled: false,
-    webhooks_enabled: false,
-    api_access: false,
-    white_label: false,
-    ai_advanced: false,
-    analytics_premium: false
+    trialDays: ""
   })
 
   // Modal state - Novo Plano
@@ -338,25 +327,8 @@ export default function AdminPage() {
       status: company.status,
       trialDays: company.trialEndsAt
         ? String(Math.max(0, Math.ceil((new Date(company.trialEndsAt).getTime() - Date.now()) / 86400000)))
-        : "0",
-      adminName: "",
-      newPassword: ""
+        : "0"
     })
-    // Carrega features salvas da empresa
-    try {
-      const saved = (company as any).customFeatures ? JSON.parse((company as any).customFeatures) : {}
-      setEditSelectedFeatures({
-        calendar_enabled: saved.calendar_enabled ?? true,
-        voice_enabled: saved.voice_enabled ?? false,
-        webhooks_enabled: saved.webhooks_enabled ?? false,
-        api_access: saved.api_access ?? false,
-        white_label: saved.white_label ?? false,
-        ai_advanced: saved.ai_advanced ?? false,
-        analytics_premium: saved.analytics_premium ?? false
-      })
-    } catch {
-      setEditSelectedFeatures({ calendar_enabled: true, voice_enabled: false, webhooks_enabled: false, api_access: false, white_label: false, ai_advanced: false, analytics_premium: false })
-    }
     setIsEditCompanyModalOpen(true)
   }
 
@@ -376,10 +348,7 @@ export default function AdminPage() {
           cnpj: editCompanyFormData.cnpj,
           planId: editCompanyFormData.planId,
           status: editCompanyFormData.status,
-          trialDays: parseInt(editCompanyFormData.trialDays) || 0,
-          adminName: editCompanyFormData.adminName || undefined,
-          newPassword: editCompanyFormData.newPassword || undefined,
-          customFeatures: editSelectedFeatures
+          trialDays: parseInt(editCompanyFormData.trialDays) || 0
         })
       })
 
@@ -1020,23 +989,22 @@ export default function AdminPage() {
             <DialogDescription>Atualize os dados da empresa.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdateCompany} className="space-y-4">
-            {/* Dados da Empresa */}
-            <div className="space-y-2">
-              <Label>Razão Social / Nome da Empresa *</Label>
-              <Input
-                value={editCompanyFormData.name}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, name: e.target.value })}
-                placeholder="Minha Empresa LTDA"
-                required
-              />
-            </div>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>CNPJ</Label>
+              <div className="space-y-2 col-span-2">
+                <Label>Nome da Empresa *</Label>
                 <Input
-                  value={editCompanyFormData.cnpj}
-                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, cnpj: e.target.value })}
-                  placeholder="00.000.000/0001-00"
+                  value={editCompanyFormData.name}
+                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>E-mail *</Label>
+                <Input
+                  type="email"
+                  value={editCompanyFormData.email}
+                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, email: e.target.value })}
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -1047,116 +1015,53 @@ export default function AdminPage() {
                   placeholder="(11) 99999-9999"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label>E-mail corporativo *</Label>
-              <Input
-                type="email"
-                value={editCompanyFormData.email}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, email: e.target.value })}
-                placeholder="voce@empresa.com"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nome do Responsável</Label>
-              <Input
-                value={editCompanyFormData.adminName}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, adminName: e.target.value })}
-                placeholder="Nome completo do admin"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Nova Senha <span className="text-muted-foreground text-xs">(deixe em branco para não alterar)</span></Label>
-              <Input
-                type="password"
-                value={editCompanyFormData.newPassword}
-                onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, newPassword: e.target.value })}
-                placeholder="Mínimo 8 caracteres"
-                minLength={editCompanyFormData.newPassword ? 8 : undefined}
-              />
-            </div>
-
-            {/* Plano e Trial */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Plano e Configurações</h4>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Plano *</Label>
-                  <select
-                    value={editCompanyFormData.planId}
-                    onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, planId: e.target.value })}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  >
-                    <option value="">Selecione um plano</option>
-                    {plans.map(p => (
-                      <option key={p.id} value={p.id}>{p.name} — R$ {(p.priceMonthly / 100).toFixed(2)}/mês</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Status</Label>
-                  <select
-                    value={editCompanyFormData.status}
-                    onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, status: e.target.value })}
-                    className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-                  >
-                    <option value="trial">Trial</option>
-                    <option value="active">Ativo</option>
-                    <option value="suspended">Suspenso</option>
-                    <option value="cancelled">Cancelado</option>
-                  </select>
-                </div>
-                {editCompanyFormData.status === "trial" && (
-                  <div className="space-y-2 col-span-2">
-                    <Label>Dias restantes de trial</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={editCompanyFormData.trialDays}
-                      onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, trialDays: e.target.value })}
-                      placeholder="14"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Features Personalizadas */}
-            <div className="border-t pt-4">
-              <h4 className="font-medium mb-3">Features Personalizadas</h4>
               <div className="space-y-2">
-                {availableFeatures.map(feature => {
-                  const selectedPlan = plans.find(p => p.id === editCompanyFormData.planId)
-                  const isIncluded = selectedPlan && feature.included.includes(selectedPlan.name)
-                  const isSelected = editSelectedFeatures[feature.key] ?? false
-
-                  return (
-                    <div key={feature.key} className="flex items-center justify-between p-2 rounded hover:bg-muted/50">
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="checkbox"
-                          id={`edit-${feature.key}`}
-                          checked={isSelected}
-                          onChange={(e) => setEditSelectedFeatures(prev => ({ ...prev, [feature.key]: e.target.checked }))}
-                          className="h-4 w-4"
-                        />
-                        <Label htmlFor={`edit-${feature.key}`} className="cursor-pointer">
-                          {feature.name}
-                          {isIncluded && <span className="ml-2 text-xs text-green-600">(incluído)</span>}
-                        </Label>
-                      </div>
-                      {!isIncluded && feature.price > 0 && (
-                        <span className="text-sm text-muted-foreground">
-                          +R$ {(feature.price / 100).toFixed(2)}
-                        </span>
-                      )}
-                    </div>
-                  )
-                })}
+                <Label>CNPJ</Label>
+                <Input
+                  value={editCompanyFormData.cnpj}
+                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, cnpj: e.target.value })}
+                  placeholder="00.000.000/0001-00"
+                />
               </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <select
+                  value={editCompanyFormData.status}
+                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, status: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="trial">Trial</option>
+                  <option value="active">Ativo</option>
+                  <option value="suspended">Suspenso</option>
+                  <option value="cancelled">Cancelado</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Plano</Label>
+                <select
+                  value={editCompanyFormData.planId}
+                  onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, planId: e.target.value })}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Selecione um plano</option>
+                  {plans.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} — R$ {(p.priceMonthly / 100).toFixed(2)}/mês</option>
+                  ))}
+                </select>
+              </div>
+              {editCompanyFormData.status === "trial" && (
+                <div className="space-y-2 col-span-2">
+                  <Label>Dias restantes de trial</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={editCompanyFormData.trialDays}
+                    onChange={(e) => setEditCompanyFormData({ ...editCompanyFormData, trialDays: e.target.value })}
+                    placeholder="14"
+                  />
+                </div>
+              )}
             </div>
-
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setIsEditCompanyModalOpen(false)}>
                 Cancelar
