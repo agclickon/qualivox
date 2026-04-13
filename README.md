@@ -1,4 +1,4 @@
-# LeadFlow CRM
+# Qualivox CRM
 
 > CRM de gestão de leads com integração nativa ao WhatsApp e qualificação automática por IA.
 
@@ -8,7 +8,7 @@
 
 ## Visão Geral
 
-LeadFlow é uma plataforma SaaS de CRM voltada para pequenas empresas, consultores e agências que precisam gerenciar leads capturados via WhatsApp. Toda a comunicação acontece dentro da plataforma — sem precisar abrir o celular.
+Qualivox é uma plataforma SaaS de CRM voltada para pequenas empresas, consultores e agências que precisam gerenciar leads capturados via WhatsApp. Toda a comunicação acontece dentro da plataforma — sem precisar abrir o celular.
 
 ### O que já funciona hoje
 
@@ -92,7 +92,7 @@ LeadFlow é uma plataforma SaaS de CRM voltada para pequenas empresas, consultor
 ## Estrutura do Projeto
 
 ```
-leadflow/
+qualivox/
 ├── prisma/
 │   ├── schema.prisma          # Modelos do banco de dados
 │   └── seed.ts                # Dados iniciais
@@ -221,7 +221,7 @@ npm run dev
 Acesse: `http://localhost:3000`
 
 **Login padrão após seed:**
-- Email: `admin@leadflow.com`
+- Email: `admin@qualivox.com`
 - Senha: `admin123`
 
 ---
