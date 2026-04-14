@@ -23,9 +23,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// PATCH - v3 production fix - force rebuild
+// PATCH - v4 definitive fix
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log("[PATCH Agent] Starting update for:", params.id)
+  console.log("[PATCH Agent] v4 - ID:", params.id)
   const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
 
