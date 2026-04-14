@@ -77,43 +77,28 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (connectionIds !== undefined) knownData.connectionIds = JSON.stringify(connectionIds)
     if (isActive !== undefined) knownData.isActive = isActive
 
+    // Campos de voz
+    if (voiceEnabled !== undefined) (knownData as any).voiceEnabled = voiceEnabled
+    if (voiceMode !== undefined) (knownData as any).voiceMode = voiceMode
+    if (voiceId !== undefined) (knownData as any).voiceId = voiceId || null
+    if (voiceSpeed !== undefined) (knownData as any).voiceSpeed = voiceSpeed
+    if (voiceStability !== undefined) (knownData as any).voiceStability = voiceStability
+    if (voiceSimilarity !== undefined) (knownData as any).voiceSimilarity = voiceSimilarity
+    
+    // Campos de comportamento
+    if (typingDelay !== undefined) (knownData as any).typingDelay = typingDelay
+    if (typingDelayMax !== undefined) (knownData as any).typingDelayMax = typingDelayMax
+    if (markAsRead !== undefined) (knownData as any).markAsRead = markAsRead
+    if (splitMessages !== undefined) (knownData as any).splitMessages = splitMessages
+    if (learningPolicy !== undefined) (knownData as any).learningPolicy = learningPolicy
+    if (supervisorPhone !== undefined) (knownData as any).supervisorPhone = supervisorPhone || null
+    
+    // Campos de calendário
+    if (calendarEnabled !== undefined) (knownData as any).calendarEnabled = calendarEnabled
+    if (calendarAddMeetLink !== undefined) (knownData as any).calendarAddMeetLink = calendarAddMeetLink
+
     if (Object.keys(knownData).length > 0) {
       await prisma.agent.update({ where: { id: params.id }, data: knownData })
-    }
-
-    // Campos adicionados após o server iniciar — usa raw SQL para contornar cache do Prisma client
-    const rawParts: string[] = []
-    const rawValues: unknown[] = []
-
-    let paramIndex = 0
-    const addRaw = (col: string, val: unknown) => { 
-      paramIndex++
-      rawParts.push(`${col} = $${paramIndex}`); 
-      rawValues.push(val) 
-    }
-
-    if (voiceEnabled !== undefined) addRaw("voice_enabled", voiceEnabled ? 1 : 0)
-    if (voiceMode !== undefined) addRaw("voice_mode", voiceMode)
-    if (voiceId !== undefined) addRaw("voice_id", voiceId || null)
-    if (voiceSpeed !== undefined) addRaw("voice_speed", voiceSpeed)
-    if (voiceStability !== undefined) addRaw("voice_stability", voiceStability)
-    if (voiceSimilarity !== undefined) addRaw("voice_similarity", voiceSimilarity)
-    if (typingDelay !== undefined) addRaw("typing_delay", typingDelay ? 1 : 0)
-    if (typingDelayMax !== undefined) addRaw("typing_delay_max", typingDelayMax)
-    if (markAsRead !== undefined) addRaw("mark_as_read", markAsRead ? 1 : 0)
-    if (splitMessages !== undefined) addRaw("split_messages", splitMessages ? 1 : 0)
-    if (learningPolicy !== undefined) addRaw("learning_policy", learningPolicy)
-    if (supervisorPhone !== undefined) addRaw("supervisor_phone", supervisorPhone || null)
-    if (calendarEnabled !== undefined) addRaw("calendar_enabled", calendarEnabled ? 1 : 0)
-    if (calendarAddMeetLink !== undefined) addRaw("calendar_add_meet_link", calendarAddMeetLink ? 1 : 0)
-
-    if (rawParts.length > 0) {
-      paramIndex++
-      rawValues.push(params.id)
-      await prisma.$executeRawUnsafe(
-        `UPDATE agents SET ${rawParts.join(", ")}, updated_at = NOW() WHERE id = $${paramIndex}`,
-        ...rawValues
-      )
     }
 
     // Retorna o agente atualizado
