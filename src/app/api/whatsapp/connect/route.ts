@@ -1,47 +1,34 @@
 import { NextRequest, NextResponse } from "next/server"
 import QRCode from "qrcode"
-import { Prisma } from "@prisma/client"
 import { getPrismaFromRequest, getPrismaForConnection } from "@/lib/prisma-tenant"
-import { initSession, getSession, removeSession, registerSessionHook } from "@/lib/baileys-session"
-import { startMessageListener } from "@/lib/baileys-listener"
 
-type WaConn = Prisma.WhatsappConnectionGetPayload<Record<string, never>>
+const WHATSAPP_SERVICE_URL = process.env.WHATSAPP_SERVICE_URL || ""
 
-async function connectConnection(connectionId: string) {
-  // Resolve o banco correto para esta conexão (banco isolado do tenant ou default)
-  const db = await getPrismaForConnection(connectionId)
-
-  let connection: WaConn | null = await db.whatsappConnection.findUnique({ where: { id: connectionId } })
-  if (!connection) return null
-
-  registerSessionHook(connection.id, (session) => {
-    startMessageListener(session, connection!.id)
-  })
-
-  // Força limpeza de sessão presa (OPENING travado ou creds inválidas) antes de nova tentativa
-  if (!getSession(connection.id)) {
-    await removeSession(connection.id, false)
+async function connectViaRailway(connectionId: string) {
+  if (!WHATSAPP_SERVICE_URL) {
+    console.error("[WhatsApp Connect] WHATSAPP_SERVICE_URL não configurado")
+    return null
   }
 
-  if (!getSession(connection.id)) {
-    try {
-      await initSession(connection.id)
-    } catch (err) {
-      console.error("[WhatsApp Connect] initSession error:", err)
+  try {
+    // Chama Railway para iniciar conexão
+    const response = await fetch(`${WHATSAPP_SERVICE_URL}/connect/${connectionId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    })
+
+    if (!response.ok) {
+      console.error("[WhatsApp Connect] Railway error:", response.status)
+      return null
     }
-  }
 
-  // Poll por até 10s esperando QR ou CONNECTED
-  for (let attempt = 0; attempt < 10; attempt++) {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    const polled: WaConn | null = await db.whatsappConnection.findUnique({ where: { id: connection!.id } })
-    if (!polled) break
-    connection = polled
-    if (polled.status === "CONNECTED") break
-    if (polled.status === "qrcode" && polled.qrcode) break
+    const data = await response.json()
+    console.log("[WhatsApp Connect] Railway response:", data)
+    return data
+  } catch (err) {
+    console.error("[WhatsApp Connect] Fetch error:", err)
+    return null
   }
-
-  return connection
 }
 
 // GET /api/whatsapp/connect?connectionId=xxx
@@ -51,10 +38,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const connectionIdParam = searchParams.get("connectionId")
 
-    let connection
-    if (connectionIdParam) {
-      connection = await connectConnection(connectionIdParam)
-    } else {
+    let connectionId = connectionIdParam
+    
+    if (!connectionId) {
       // fallback: default connection
       let conn = await prisma.whatsappConnection.findFirst({ where: { isDefault: true } })
       if (!conn) {
@@ -62,7 +48,22 @@ export async function GET(request: NextRequest) {
           data: { name: "WhatsApp Principal", provider: "baileys", isDefault: true, status: "disconnected" },
         })
       }
-      connection = await connectConnection(conn.id)
+      connectionId = conn.id
+    }
+
+    // Chama Railway para conectar
+    await connectViaRailway(connectionId)
+
+    // Aguarda e busca status do banco
+    await new Promise((r) => setTimeout(r, 2000))
+    const db = await getPrismaForConnection(connectionId)
+    let connection = await db.whatsappConnection.findUnique({ where: { id: connectionId } })
+    
+    // Poll por até 8s esperando QR ou CONNECTED
+    for (let i = 0; i < 8 && connection; i++) {
+      if (connection.status === "CONNECTED" || (connection.status === "qrcode" && connection.qrcode)) break
+      await new Promise((r) => setTimeout(r, 1000))
+      connection = await db.whatsappConnection.findUnique({ where: { id: connectionId } })
     }
 
     if (!connection) {
