@@ -116,9 +116,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       )
     }
 
-    // Retorna o agente atualizado via raw para incluir todos os campos
-    const rows = await prisma.$queryRaw<any[]>`SELECT * FROM agents WHERE id = ${params.id}`
-    const agent = rows[0] ?? null
+    // Retorna o agente atualizado
+    const agent = await prisma.agent.findUnique({
+      where: { id: params.id },
+      include: {
+        createdBy: { select: { id: true, name: true } },
+        knowledgeFiles: { orderBy: { createdAt: "desc" } },
+      },
+    })
 
     return NextResponse.json({ success: true, data: { agent } })
   } catch (error) {
