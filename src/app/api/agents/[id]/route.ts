@@ -23,8 +23,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// PATCH - v2 fix: sem SQL raw, apenas Prisma Client
+// PATCH - v3 production fix - force rebuild
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  console.log("[PATCH Agent] Starting update for:", params.id)
   const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
 
