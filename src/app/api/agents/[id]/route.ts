@@ -98,6 +98,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (calendarAddMeetLink !== undefined) (knownData as any).calendarAddMeetLink = calendarAddMeetLink
 
     if (Object.keys(knownData).length > 0) {
+      console.log("[Agent Update] Campos:", Object.keys(knownData))
       await prisma.agent.update({ where: { id: params.id }, data: knownData })
     }
 
