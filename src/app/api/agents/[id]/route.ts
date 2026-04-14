@@ -23,6 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
+// PATCH - v2 fix: sem SQL raw, apenas Prisma Client
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
