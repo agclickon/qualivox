@@ -85,7 +85,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     const rawParts: string[] = []
     const rawValues: unknown[] = []
 
-    const addRaw = (col: string, val: unknown) => { rawParts.push(`${col} = ?`); rawValues.push(val) }
+    let paramIndex = 0
+    const addRaw = (col: string, val: unknown) => { 
+      paramIndex++
+      rawParts.push(`${col} = $${paramIndex}`); 
+      rawValues.push(val) 
+    }
 
     if (voiceEnabled !== undefined) addRaw("voice_enabled", voiceEnabled ? 1 : 0)
     if (voiceMode !== undefined) addRaw("voice_mode", voiceMode)
@@ -103,9 +108,10 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (calendarAddMeetLink !== undefined) addRaw("calendar_add_meet_link", calendarAddMeetLink ? 1 : 0)
 
     if (rawParts.length > 0) {
+      paramIndex++
       rawValues.push(params.id)
       await prisma.$executeRawUnsafe(
-        `UPDATE agents SET ${rawParts.join(", ")}, updated_at = datetime('now') WHERE id = ?`,
+        `UPDATE agents SET ${rawParts.join(", ")}, updated_at = NOW() WHERE id = $${paramIndex}`,
         ...rawValues
       )
     }
