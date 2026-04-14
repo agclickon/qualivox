@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { verifyAccessToken } from "@/lib/auth"
 
 // GET /api/chat?channel=geral - Listar mensagens de um canal
 export async function GET(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const token = request.cookies.get("access_token")?.value
     if (!token) {
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/chat - Enviar mensagem
 export async function POST(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const token = request.cookies.get("access_token")?.value
     if (!token) {

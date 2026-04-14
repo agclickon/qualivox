@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // PUT /api/automations/:id - Atualizar automação
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const body = await request.json()
 
@@ -35,6 +36,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(_request)
   try {
     await prisma.automation.delete({ where: { id: params.id } })
     return NextResponse.json({ success: true })

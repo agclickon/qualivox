@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { getSession } from "@/lib/baileys-session"
 
 export const dynamic = "force-dynamic"
 
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(_req)
   try {
     const message = await prisma.message.findUnique({
       where: { id: params.id },

@@ -816,6 +816,7 @@ function CreateLeadModal({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<CreateLeadInput>({
     resolver: zodResolver(createLeadSchema),
@@ -901,7 +902,7 @@ function CreateLeadModal({
             </div>
             <div className="space-y-2">
               <Label htmlFor="lead-source">Origem</Label>
-              <Select onValueChange={(v) => setValue("source", v)} defaultValue="">
+              <Select onValueChange={(v) => setValue("source", v as CreateLeadInput["source"])} defaultValue="">
                 <SelectTrigger className="w-full" data-testid="select-lead-source">
                   <SelectValue placeholder="Selecione..." />
                 </SelectTrigger>

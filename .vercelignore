@@ -1,0 +1,6 @@
+prisma/dev.db
+prisma/backups
+data/
+tests/
+playwright-report/
+test-results/

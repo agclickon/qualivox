@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export const dynamic = "force-dynamic"
 
@@ -16,6 +16,7 @@ export const dynamic = "force-dynamic"
  * }
  */
 export async function POST(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const body = await req.json() as {
       leadId?: string

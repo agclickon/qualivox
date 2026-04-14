@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // DELETE /api/lgpd/delete-data?leadId=xxx - Excluir todos os dados de um lead (Direito ao Esquecimento)
 export async function DELETE(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const userRole = request.headers.get("x-user-role")
     if (userRole !== "super_admin" && userRole !== "admin") {

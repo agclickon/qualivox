@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/settings - Buscar todas as configurações
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const settings = await prisma.setting.findMany()
     const map: Record<string, string> = {}
@@ -21,6 +22,7 @@ export async function GET() {
 
 // PUT /api/settings - Salvar configurações (recebe objeto chave-valor)
 export async function PUT(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const body = await request.json()
 

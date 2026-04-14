@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { removeSession } from "@/lib/baileys-session"
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const { id } = params
     const body = await request.json().catch(() => ({}))
@@ -51,6 +52,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const { id } = params
     const body = await request.json().catch(() => ({}))
@@ -80,6 +82,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(_request)
   try {
     const { id } = params
 

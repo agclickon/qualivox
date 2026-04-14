@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/leads/[id]/notes
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(_request)
   try {
     const notes = await prisma.interaction.findMany({
       where: { leadId: params.id, type: "note" },
@@ -24,6 +25,7 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const body = await request.json().catch(() => ({}))
     const { content, userId } = body

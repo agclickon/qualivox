@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/notifications - Listar notificações do usuário
 export async function GET(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const userId = request.headers.get("x-user-id")
     if (!userId) {
@@ -45,6 +46,7 @@ export async function GET(request: NextRequest) {
 
 // PATCH /api/notifications - Marcar notificações como lidas
 export async function PATCH(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const userId = request.headers.get("x-user-id")
     if (!userId) {

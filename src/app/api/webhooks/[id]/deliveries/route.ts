@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/webhooks/[id]/deliveries — últimas 50 entregas do endpoint
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(_req)
   const deliveries = await prisma.$queryRawUnsafe<{
     id: string; event: string; status: string; status_code: number | null
     attempt: number; created_at: string; response_body: string | null

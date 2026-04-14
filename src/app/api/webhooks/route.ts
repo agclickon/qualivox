@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
+import { prisma as defaultPrisma } from "@/lib/prisma"
 import crypto from "crypto"
 
 // Lazy migration para garantir coluna name
 async function ensureNameCol() {
-  await prisma.$executeRawUnsafe(`ALTER TABLE webhooks ADD COLUMN name TEXT NOT NULL DEFAULT ''`).catch(() => {})
+  await defaultPrisma.$executeRawUnsafe(`ALTER TABLE webhooks ADD COLUMN name TEXT NOT NULL DEFAULT ''`).catch(() => {})
 }
 
 // GET /api/webhooks — lista todos os endpoints
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   await ensureNameCol()
   const webhooks = await prisma.$queryRawUnsafe<{
     id: string; name: string; url: string; events: string; secret: string | null; is_active: number; created_at: string
@@ -26,6 +28,7 @@ export async function GET() {
 
 // POST /api/webhooks — cria novo endpoint
 export async function POST(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   await ensureNameCol()
   const body = await request.json()
   const { name, url, events, secret } = body

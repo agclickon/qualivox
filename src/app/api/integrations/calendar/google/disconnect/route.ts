@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { verifyAccessToken } from "@/lib/auth"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export const dynamic = "force-dynamic"
 
 export async function POST(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   const token = req.cookies.get("access_token")?.value
   if (!token) return NextResponse.json({ success: false, error: "Não autenticado" }, { status: 401 })
 

@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export const dynamic = "force-dynamic"
 
 // GET /api/ai/analyses?leadId=xxx&limit=20
 export async function GET(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   const leadId = req.nextUrl.searchParams.get("leadId")
   const limit = parseInt(req.nextUrl.searchParams.get("limit") ?? "20", 10)
 

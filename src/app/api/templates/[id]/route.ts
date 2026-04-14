@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
+import { prisma as defaultPrisma } from "@/lib/prisma"
 import { verifyAccessToken } from "@/lib/auth"
 
 async function getAuthenticatedUser(request: NextRequest) {
@@ -8,7 +9,7 @@ async function getAuthenticatedUser(request: NextRequest) {
   try {
     const payload = await verifyAccessToken(token)
     if (!payload) return null
-    const user = await prisma.user.findUnique({
+    const user = await defaultPrisma.user.findUnique({
       where: { id: payload.userId },
       select: { id: true, name: true, role: true, isActive: true },
     })
@@ -24,13 +25,14 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const authUser = await getAuthenticatedUser(request)
     if (!authUser) {
       return NextResponse.json({ success: false, error: { code: "UNAUTHORIZED", message: "Não autenticado" } }, { status: 401 })
     }
 
-    const template = await prisma.messageTemplate.findUnique({ where: { id: params.id } })
+    const template = await defaultPrisma.messageTemplate.findUnique({ where: { id: params.id } })
     if (!template) {
       return NextResponse.json({ success: false, error: { code: "NOT_FOUND", message: "Template não encontrado" } }, { status: 404 })
     }
@@ -42,7 +44,7 @@ export async function PUT(
 
     const body = await request.json()
 
-    const updated = await prisma.messageTemplate.update({
+    const updated = await defaultPrisma.messageTemplate.update({
       where: { id: params.id },
       data: {
         name: body.name ?? template.name,
@@ -65,13 +67,14 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const authUser = await getAuthenticatedUser(request)
     if (!authUser) {
       return NextResponse.json({ success: false, error: { code: "UNAUTHORIZED", message: "Não autenticado" } }, { status: 401 })
     }
 
-    const template = await prisma.messageTemplate.findUnique({ where: { id: params.id } })
+    const template = await defaultPrisma.messageTemplate.findUnique({ where: { id: params.id } })
     if (!template) {
       return NextResponse.json({ success: false, error: { code: "NOT_FOUND", message: "Template não encontrado" } }, { status: 404 })
     }
@@ -81,7 +84,7 @@ export async function DELETE(
       return NextResponse.json({ success: false, error: { code: "FORBIDDEN", message: "Sem permissão" } }, { status: 403 })
     }
 
-    await prisma.messageTemplate.update({
+    await defaultPrisma.messageTemplate.update({
       where: { id: params.id },
       data: { isActive: false },
     })

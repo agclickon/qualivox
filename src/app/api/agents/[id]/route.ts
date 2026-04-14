@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const agent = await prisma.agent.findUnique({
       where: { id: params.id },
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
 
   if (userRole !== "super_admin" && userRole !== "admin") {
@@ -120,6 +122,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 }
 
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
 
   if (userRole !== "super_admin" && userRole !== "admin") {

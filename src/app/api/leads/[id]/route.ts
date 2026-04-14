@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/leads/:id - Obter lead por ID
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(_request)
   try {
     const lead = await prisma.lead.findUnique({
       where: { id: params.id },
@@ -60,6 +61,7 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const body = await request.json()
 
@@ -113,6 +115,7 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(_request)
   try {
     const existing = await prisma.lead.findUnique({ where: { id: params.id } })
     if (!existing) {

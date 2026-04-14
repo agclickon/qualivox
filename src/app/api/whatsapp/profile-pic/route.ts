@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { getSession } from "@/lib/baileys-session"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 const globalForPics = globalThis as typeof globalThis & {
   __profilePicCache?: Map<string, { url: string | null; fetchedAt: number }>
@@ -17,6 +17,7 @@ const CACHE_TTL_MS = 1000 * 60 * 30 // 30 minutes
 
 // GET /api/whatsapp/profile-pic?jid=xxx - Get profile picture URL
 export async function GET(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   const jid = request.nextUrl.searchParams.get("jid")
   if (!jid) {
     return NextResponse.json({ success: true, url: null })

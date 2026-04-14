@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export const dynamic = "force-dynamic"
 
@@ -14,6 +14,7 @@ function slugify(name: string): string {
 
 // GET /api/tags — lista todas as tags ativas (ou todas se ?all=1)
 export async function GET(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   const all = req.nextUrl.searchParams.get("all") === "1"
   const tags = await prisma.tag.findMany({
     where: all ? undefined : { isActive: true },
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/tags — criar nova tag
 export async function POST(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const body = await req.json() as {
       name?: string

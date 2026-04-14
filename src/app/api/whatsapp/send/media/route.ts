@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
+import { prisma as defaultPrisma } from "@/lib/prisma"
 import { sendMediaMessage } from "@/lib/baileys-sender"
 import { webmOpusToOgg } from "@/lib/webm-to-ogg"
 
 async function resolveConnectionForLead(leadId: string, requestedConnectionId?: string | null) {
   const requestedId = typeof requestedConnectionId === "string" && requestedConnectionId.length > 0 ? requestedConnectionId : undefined
-  const conversation = await prisma.conversation.findFirst({
+  const conversation = await defaultPrisma.conversation.findFirst({
     where: requestedId ? { leadId, connectionId: requestedId } : { leadId },
     orderBy: { updatedAt: "desc" },
   })
 
   const activeConnectionId = requestedId || conversation?.connectionId
   const connection = activeConnectionId
-    ? await prisma.whatsappConnection.findUnique({ where: { id: activeConnectionId } })
-    : await prisma.whatsappConnection.findFirst({ where: { isDefault: true } })
+    ? await defaultPrisma.whatsappConnection.findUnique({ where: { id: activeConnectionId } })
+    : await defaultPrisma.whatsappConnection.findFirst({ where: { isDefault: true } })
 
   if (!connection) return null
 
   const existingConversation = conversation && conversation.connectionId === connection.id
     ? conversation
-    : await prisma.conversation.findFirst({ where: { leadId, connectionId: connection.id } })
+    : await defaultPrisma.conversation.findFirst({ where: { leadId, connectionId: connection.id } })
 
   return { connection, conversation: existingConversation }
 }
@@ -43,6 +44,7 @@ export const dynamic = "force-dynamic"
 
 // POST /api/whatsapp/send/media
 export async function POST(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   console.log("\n========== [MEDIA ROUTE] POST recebido ==========")
   try {
     const formData = await request.formData()

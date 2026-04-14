@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/lgpd/export-data?leadId=xxx - Exportar todos os dados de um lead (LGPD)
 export async function GET(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const { searchParams } = new URL(request.url)
     const leadId = searchParams.get("leadId")

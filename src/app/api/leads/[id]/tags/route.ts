@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export const dynamic = "force-dynamic"
 
 // GET /api/leads/[id]/tags — listar tags do lead
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(_req)
   const leadTags = await prisma.leadTag.findMany({
     where: { leadId: params.id },
     include: { tag: true },
@@ -16,6 +17,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 // POST /api/leads/[id]/tags — aplicar tag ao lead
 // Body: { tagId, source?, appliedBy? }
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const body = await req.json() as { tagId?: string; source?: string; appliedBy?: string }
     if (!body.tagId) {
@@ -49,6 +51,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 // DELETE /api/leads/[id]/tags?tagId=xxx — remover tag do lead
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   const tagId = req.nextUrl.searchParams.get("tagId")
   if (!tagId) return NextResponse.json({ success: false, error: "tagId obrigatório" }, { status: 400 })
   try {

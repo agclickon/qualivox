@@ -5,10 +5,11 @@
  * Não envia resposta via WhatsApp — apenas retorna o resultado do orquestrador.
  */
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { processMessageWithAgent } from "@/lib/agent-orchestrator"
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const body = await req.json()
     const { message, conversationId } = body

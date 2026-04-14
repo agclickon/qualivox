@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 const VALID_STAGES = ["prospect", "lead_qualificado", "oportunidade", "cliente", "pos_venda", "churned"]
 
@@ -9,6 +9,7 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const body = await request.json().catch(() => ({}))
     const { lifecycleStage, notes } = body

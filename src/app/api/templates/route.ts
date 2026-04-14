@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
+import { prisma as defaultPrisma } from "@/lib/prisma"
 import { verifyAccessToken } from "@/lib/auth"
 
 async function getAuthenticatedUser(request: NextRequest) {
@@ -8,7 +9,7 @@ async function getAuthenticatedUser(request: NextRequest) {
   try {
     const payload = await verifyAccessToken(token)
     if (!payload) return null
-    const user = await prisma.user.findUnique({
+    const user = await defaultPrisma.user.findUnique({
       where: { id: payload.userId },
       select: { id: true, name: true, role: true, isActive: true },
     })
@@ -22,6 +23,7 @@ async function getAuthenticatedUser(request: NextRequest) {
 
 // GET /api/templates - Listar templates de mensagem
 export async function GET(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const authUser = await getAuthenticatedUser(request)
     if (!authUser) {
@@ -60,6 +62,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/templates - Criar template
 export async function POST(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const authUser = await getAuthenticatedUser(request)
     if (!authUser) {

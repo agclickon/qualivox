@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { classifyConversation } from "@/lib/ai-classifier"
 import { transcribeAudioMessages } from "@/lib/ai-transcribe"
 
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic"
  * Body: { leadId, applyTags?, applyStage?, applyScore? }
  */
 export async function POST(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const body = await req.json() as {
       leadId?: string

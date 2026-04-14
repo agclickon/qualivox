@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { writeFile, mkdir } from "fs/promises"
 import path from "path"
 
 export async function POST(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
   if (userRole !== "super_admin" && userRole !== "admin") {
     return NextResponse.json({ success: false, error: "Sem permissão" }, { status: 403 })

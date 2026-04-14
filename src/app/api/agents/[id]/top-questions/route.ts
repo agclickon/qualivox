@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export const dynamic = "force-dynamic"
 
@@ -30,6 +30,7 @@ function buildTopicKey(text: string): string {
 
 // GET /api/agents/[id]/top-questions?period=7d|30d|90d&limit=10
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   const period = req.nextUrl.searchParams.get("period") ?? "30d"
   const limit = parseInt(req.nextUrl.searchParams.get("limit") ?? "10", 10)
   const days = period === "7d" ? 7 : period === "90d" ? 90 : 30

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/audit - Listar logs de auditoria
 export async function GET(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const userRole = request.headers.get("x-user-role")
     if (userRole !== "super_admin" && userRole !== "admin") {
@@ -21,7 +22,8 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {}
     if (entity) where.entity = entity
-    if (action) where.action = { contains: action, mode: "insensitive" }
+    // SQLite não suporta mode: "insensitive" — contains já é case-insensitive para ASCII no SQLite
+    if (action) where.action = { contains: action }
 
     const [logs, total] = await Promise.all([
       prisma.auditLog.findMany({

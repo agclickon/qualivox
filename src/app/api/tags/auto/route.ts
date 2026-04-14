@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export const dynamic = "force-dynamic"
 
@@ -17,6 +17,7 @@ export const dynamic = "force-dynamic"
  * Retorna: { applied: LeadTag[], removed: number }
  */
 export async function POST(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const body = await req.json() as {
       leadId?: string
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
  * Útil para o frontend mostrar sugestões com badge "IA".
  */
 export async function GET(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   const leadId = req.nextUrl.searchParams.get("leadId")
   if (!leadId) return NextResponse.json({ success: false, error: "leadId obrigatório" }, { status: 400 })
 

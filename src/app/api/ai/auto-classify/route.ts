@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { classifyConversation } from "@/lib/ai-classifier"
 import { emitConversationUpdate } from "@/lib/baileys-listener"
 
@@ -14,6 +14,7 @@ export const dynamic = "force-dynamic"
  * Body: { conversationId }
  */
 export async function POST(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     // Verificar se a análise automática está habilitada
     const settings = await prisma.setting.findMany({

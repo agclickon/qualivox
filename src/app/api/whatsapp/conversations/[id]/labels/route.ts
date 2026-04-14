@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export const dynamic = "force-dynamic"
 
 // GET — list labels for a conversation
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(_req)
   const conv = await prisma.conversation.findUnique({ where: { id: params.id }, select: { labels: true } })
   if (!conv) return NextResponse.json({ success: false, error: "Não encontrada" }, { status: 404 })
   const labels: string[] = JSON.parse(conv.labels || "[]")
@@ -13,6 +14,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 
 // POST — add label { label: string }
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   const { label } = await req.json() as { label?: string }
   if (!label?.trim()) return NextResponse.json({ success: false, error: "label obrigatório" }, { status: 400 })
 
@@ -27,6 +29,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 
 // DELETE — remove label { label: string }
 export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   const { label } = await req.json() as { label?: string }
   if (!label) return NextResponse.json({ success: false, error: "label obrigatório" }, { status: 400 })
 

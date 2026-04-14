@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 15 * 60,
+      maxAge: 8 * 60 * 60, // 8 horas — igual ao JWT_EXPIRY
       path: "/",
     })
 

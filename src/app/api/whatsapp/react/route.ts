@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { getSession } from "@/lib/baileys-session"
 
 export const dynamic = "force-dynamic"
@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic"
 // POST /api/whatsapp/react
 // Body: { messageId, emoji } — messageId is our internal DB id, emoji="" removes reaction
 export async function POST(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const { messageId, emoji } = await request.json() as { messageId?: string; emoji?: string }
     if (!messageId) return NextResponse.json({ success: false, error: "messageId obrigatório" }, { status: 400 })

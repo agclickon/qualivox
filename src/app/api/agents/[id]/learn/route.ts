@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { indexConversation } from "@/lib/agent-learner"
 
 // POST /api/agents/[id]/learn
 // Dispara indexação manual de uma conversa para este agente
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
   if (userRole !== "super_admin" && userRole !== "admin") {
     return NextResponse.json({ success: false, error: "Sem permissão" }, { status: 403 })

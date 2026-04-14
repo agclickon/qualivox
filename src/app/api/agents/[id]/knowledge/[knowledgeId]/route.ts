@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: { id: string; knowledgeId: string } }
 ) {
+  const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
   if (userRole !== "super_admin" && userRole !== "admin") {
     return NextResponse.json({ success: false, error: "Sem permissão" }, { status: 403 })
@@ -32,6 +33,7 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: { id: string; knowledgeId: string } }
 ) {
+  const prisma = await getPrismaFromRequest(_req)
   try {
     const file = await (prisma.agentKnowledge as any).findUnique({
       where: { id: params.knowledgeId },

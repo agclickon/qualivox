@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import "@/lib/jobs/follow-up-runner"
 
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(_request)
   try {
     const followUp = await prisma.followUp.findUnique({ where: { id: params.id } })
     if (!followUp) {

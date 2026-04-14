@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { chunkAndEmbed } from "@/lib/agent-learner"
 
 // PATCH /api/agents/[id]/knowledge/[knowledgeId]/review
@@ -8,6 +8,7 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: { id: string; knowledgeId: string } }
 ) {
+  const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
   if (userRole !== "super_admin" && userRole !== "admin") {
     return NextResponse.json({ success: false, error: "Sem permissão" }, { status: 403 })

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { z } from "zod"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import "@/lib/jobs/follow-up-runner"
 import "@/lib/jobs/reminder-runner"
 
@@ -19,6 +19,7 @@ const followUpInclude = {
 }
 
 export async function GET(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const { searchParams } = request.nextUrl
     const conversationId = searchParams.get("conversationId")
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const json = await request.json()
     const parsed = followUpSchema.safeParse(json)

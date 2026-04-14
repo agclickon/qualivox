@@ -1,19 +1,29 @@
 # LeadFlow CRM — Checklist de Execução
 
 ## Objetivo do Projeto
-CRM de gestão de leads com integração nativa ao WhatsApp e qualificação automática por IA para automatizar e otimizar o processo de vendas.
+Plataforma SaaS multi-tenant white label de CRM com integração nativa ao WhatsApp e qualificação automática por IA — comercializável via revenda, sublicenciamento e acesso direto, com controle centralizado de propriedade intelectual pelo titular.
 
 ## Stack Tecnológica Real
 - **Frontend:** Next.js 14 (App Router) + React 18 + TypeScript
 - **UI:** shadcn/ui + Tailwind CSS + Radix UI
 - **Backend:** Next.js API Routes
-- **Banco de dados:** SQLite via Prisma 5
+- **Banco de dados:** SQLite via Prisma 5 (SQLite por tenant para isolamento de dados)
 - **WhatsApp:** @whiskeysockets/baileys v7 (sem Evolution API)
 - **IA:** Módulo unificado — OpenAI, Anthropic, Gemini, Grok, DeepSeek
 - **Automação:** N8N via webhook
+- **Modelo comercial:** SaaS puro hospedado — parceiros e clientes acessam via browser, nenhum código é distribuído
+
+## Hierarquia de Acesso (4 Níveis)
+```
+Owner Master (super_admin)  →  gerencia tudo: parceiros, empresas, planos, branding
+  └── Parceiro / Revendedor (partner_admin)  →  gerencia carteira própria de clientes + white label
+        └── Empresa Cliente (admin)  →  opera o CRM: leads, agentes, integrações
+              └── Usuário Operacional (user)  →  acesso restrito ao escopo definido pelo admin
+```
 
 ## Público-Alvo
-Pequenas empresas, consultores, agências de marketing, vendedores autônomos
+- **Clientes diretos:** Pequenas empresas, consultores, agências, vendedores autônomos
+- **Parceiros/Revendedores:** Empresas que revendem acesso à plataforma com sua própria marca
 
 ---
 
@@ -325,84 +335,147 @@ Quando um lead é convertido (ganho), o sistema transforma o `lifecycleStage` pa
 - [x] Botão "Reenviar" para entregas com falha
 - [x] Exibição do payload enviado e resposta recebida
 
-### Fase 12 — SaaS Multi-tenant 🔜 v2.0.0
+### Fase 12 — SaaS v2.0: Plataforma Comercial Multi-tenant White Label 🔜 v2.0.0
 
-Transformação do LeadFlow em uma plataforma SaaS com isolamento completo por empresa, planos com limites, feature flags e painel administrativo.
+Transformação do LeadFlow em plataforma SaaS comercial com 4 níveis hierárquicos (Owner → Parceiro → Cliente → Usuário), white label parametrizável por parceiro, billing recorrente e painel administrativo completo. Nenhum código é distribuído — modelo de concessão de uso via SaaS hospedado.
 
-#### Decisões de Arquitetura
+---
 
-- **Isolamento de banco:** SQLite por tenant — cada empresa tem seu próprio arquivo `.db` (ex: `leadflow-tenant-{id}.db`)
-- **Resolução de tenant:** Login resolve o tenant — não há subdomínio; o tenant é identificado pela sessão do usuário (sem necessidade de subdomínio em desenvolvimento)
-- **Banco central (admin):** Tabelas `companies` e `plans` ficam em um banco SQLite central separado (`leadflow-admin.db`)
-- **Compatibilidade:** Arquitetura atual (single-tenant SQLite) continua funcionando como tenant único até migração
+#### Arquitetura e Decisões Técnicas
 
-#### 12.1 — Banco de Dados Administrativo (`leadflow-admin.db`)
+| Decisão | Escolha | Motivo |
+|---|---|---|
+| Distribuição | SaaS hospedado — código nunca sai | Proteção máxima de PI |
+| Isolamento de dados | SQLite por tenant (`data/tenants/leadflow-{id}.db`) | Já implementado, suficiente para MVP |
+| Resolução de tenant | Login resolve o tenant via `companyId` do usuário | Sem subdomínio necessário em dev |
+| Banco central | `leadflow-admin.db` — empresas, planos, parceiros, branding | Separado dos dados operacionais |
+| Auth hierárquico | 4 roles: `super_admin`, `partner_admin`, `admin`, `user` | `partner_admin` é o único role novo |
+| White label | CSS variables dinâmicas + branding por parceiro no DB | Sem bifurcação de código |
+| Billing | Asaas (PIX + boleto + cartão, mercado BR) | A definir: Asaas ou Stripe |
+| Storage de logos | Cloudflare R2 ou local para MVP | A definir com o owner |
+| Domínio customizado | Pós-MVP (requer infra Nginx/Cloudflare) | Fora do escopo inicial |
+| Modelo de comissão | A definir com parceiros | Repasse %, margem ou fee fixo |
 
-- [x] Tabela `companies`: id, name, slug, email, phone, cnpj, plan_id, status (active/suspended/trial), trial_ends_at, created_at
-- [x] Tabela `plans`: id, name, price_monthly, max_leads, max_users, max_whatsapp_connections, max_agents, features (JSON), created_at
-- [x] Tabela `tenant_databases`: id, company_id, db_path, created_at *(implementado como `SaasCompany`, `SaasPlan`, `SaasAuditLog` no schema principal)*
-- [x] Planos pré-definidos: **Starter** (50 leads, 2 usuários), **Pro** (500 leads, 10 usuários), **Enterprise** (ilimitado)
-- [x] Feature flags por plano: `calendar_enabled`, `voice_enabled`, `webhooks_enabled`, `api_access`, `white_label`
-- [x] Seed de planos iniciais no admin DB
+---
 
-#### 12.2 — Resolução de Tenant por Sessão
+#### O que já existe (base técnica pronta)
 
-- [x] Função `resolveTenant(userId)` — lê o `company_id` do usuário autenticado e retorna o caminho do banco do tenant
-- [x] `PrismaClient` factory por tenant: `getPrismaForTenant(companyId)` retorna instância com conexão para o `.db` correto
-- [x] Cache de instâncias Prisma por tenant (evita recriar conexão a cada request)
-- [x] Middleware de contexto: injeta `tenantId` + `prisma` no contexto de cada API route
-- [ ] Fallback seguro: usuário sem `company_id` vinculado não consegue acessar dados *(parcial — fallback para tenant 'default' implementado)*
+- [x] Infraestrutura multi-tenant: `tenant.ts` — factory Prisma por tenant, cache, provisionamento
+- [x] Middleware `withTenant()` e `getPrismaFromRequest()` — resolução automática do banco por request
+- [x] Schema: `SaasPlan`, `SaasCompany`, `SaasAuditLog` — modelos base no schema principal
+- [x] Banco central `admin-db.ts` — conexão isolada para `leadflow-admin.db`
+- [x] `plan-limits.ts` — estrutura de verificação de limites e feature flags
+- [x] `checkTenantFeature()` — verificação de feature flag por plano
+- [x] Painel `/admin` (UI parcial) — dashboard de empresas, criação, suspensão
+- [x] APIs admin: `/api/admin/companies`, `/api/admin/plans`, `/api/admin/stats`
+- [x] Registro `/registrar-empresa` — trial 14 dias, provisionamento de banco isolado
+- [x] `verifyTenantAccess()` — base para impersonation
 
-#### 12.3 — Provisionamento de Tenant
+---
 
-- [x] Criação de empresa via `/admin/companies/new` provisiona automaticamente novo `.db` *(via `/api/register`)*
-- [x] Função `provisionTenantDatabase(companyId)` — cria `.db`, roda migrations Prisma, seed de dados iniciais *(implementado como `provisionTenant()`)*
-- [x] Seed de tenant: stage de pipeline padrão, configurações mínimas, usuário admin inicial
-- [x] Migração para novo tenant não afeta tenants existentes (isolamento total)
+#### Fase 12.1 — Fundação e Correções 🔜
+*Pré-requisito para tudo. Sem essa fase, os tenants misturam dados.*
 
-#### 12.4 — Painel `/admin`
+- [ ] **[BUG CRÍTICO]** Corrigir `getCurrentUsage()` em `plan-limits.ts` — atualmente consulta o banco `default` em vez do banco isolado do tenant (leads e agentes são contados errado)
+- [ ] Aplicar `getPrismaFromRequest(req)` em todas as rotas de leads, equipe, agentes e conexões WhatsApp (atualmente usam `import { prisma }` direto)
+- [ ] Adicionar coluna `partner_id` à tabela `saas_companies` (empresa vinculada ao parceiro que a cadastrou)
+- [ ] Criar tabela `partners` no schema admin: id, name, slug, email, phone, cnpj, status, commission_percent, max_clients, admin_name, admin_email, password_hash, branding_id
+- [ ] Criar tabela `partner_sessions`: tokens de autenticação dos parceiros (separados dos tokens de usuário)
+- [ ] Criar tabela `tenant_branding`: owner_type, owner_id, logo_url, favicon_url, primary_color, secondary_color, accent_color, company_name, custom_domain, support_email, support_phone, terms_url, privacy_url
+- [ ] Adicionar role `partner_admin` ao sistema JWT (`src/lib/auth.ts` + `src/lib/jwt.ts`)
+- [ ] Seed de planos padrão com preços e feature flags configurados (Starter R$29/mês, Pro R$99/mês, Enterprise R$299/mês)
+- [ ] Executar `prisma generate` e validar que nenhuma rota usa `as any` por conta de schema desatualizado
 
-- [x] Rota `/admin` protegida por role `super_admin` (global, no banco central)
-- [x] Dashboard: total de empresas, por plano, trials ativos, crescimento mensal
-- [x] Lista de empresas: nome, plano, status, data de criação, último acesso, ações
-- [ ] Detalhe de empresa: dados cadastrais, plano atual, uso (leads/usuários/conexões), histórico
-- [ ] CRUD de empresas: criar, editar, suspender, reativar, excluir *(criar via /register OK, editar/excluir pendente)*
-- [ ] CRUD de planos: criar plano, editar limites, feature flags, preço *(seed OK, CRUD pendente)*
-- [ ] Troca de plano: altera `plan_id` da empresa com efeito imediato
-- [ ] Impersonation: super_admin pode "entrar como" qualquer empresa para suporte *(estrutura pronta, UI pendente)*
+---
 
-#### 12.5 — Registro de Empresas
+#### Fase 12.2 — White Label Engine 🔜
+*Permite que parceiros operem com a própria marca. Clientes do parceiro nunca veem "LeadFlow".*
 
-- [x] Página pública `/register` — formulário de cadastro de empresa *(implementado como `/registrar-empresa`)*
-- [x] Campos: razão social, CNPJ, email, telefone, nome do responsável, senha
-- [x] Validação de CNPJ único no banco central
-- [x] Trial automático: 14 dias no plano Pro após registro
-- [ ] E-mail de boas-vindas com link de acesso e instruções
-- [ ] Redirecionamento para onboarding após primeiro login
+- [ ] API `GET /api/branding` — retorna configuração de branding do tenant autenticado seguindo hierarquia: empresa própria → parceiro → padrão da plataforma
+- [ ] API `PUT /api/branding` — salva configuração de branding (restrito ao dono do branding)
+- [ ] Componente `BrandingProvider` no layout raiz — aplica CSS custom properties (`--color-primary`, `--color-secondary`, `--color-accent`) ao carregar
+- [ ] Substituição de logo e nome da plataforma em toda a UI pelos dados do `BrandingProvider`
+- [ ] Substituição de favicon dinamicamente via `next/head`
+- [ ] Upload de logo e favicon: armazenamento em `public/uploads/branding/` (MVP) ou Cloudflare R2
+- [ ] Página `/partner/marca` — formulário de configuração de branding do parceiro com preview ao vivo (logo, cores, nome, e-mail de suporte)
+- [ ] Página `/configuracoes/marca` — configuração de branding para empresas com feature flag `white_label` habilitada
+- [ ] Tela de login (`/login`) carrega branding correto baseado em query param `?partner=slug` ou domínio
+- [ ] Branding do parceiro é aplicado automaticamente a todos os clientes vinculados a ele
 
-#### 12.6 — Enforcement de Limites por Plano
+---
 
-- [ ] Helper `checkPlanLimit(tenantId, resource)` — verifica se empresa atingiu limite do plano
-- [ ] Bloqueio de criação de lead quando `max_leads` atingido (erro com mensagem de upgrade)
-- [ ] Bloqueio de criação de usuário quando `max_users` atingido
-- [ ] Bloqueio de nova conexão WhatsApp quando `max_whatsapp_connections` atingido
-- [ ] Bloqueio de criação de agente quando `max_agents` atingido
-- [x] Feature flags: rotas que dependem de `calendar_enabled`, `voice_enabled`, `webhooks_enabled` retornam 403 se flag desabilitada *(helper `checkTenantFeature()` pronto)*
-- [ ] Banners de aviso na UI quando uso > 80% do limite (ex: "Você usou 42/50 leads")
+#### Fase 12.3 — Portal do Parceiro `/partner` 🔜
+*O parceiro opera de forma autônoma: cadastra, gerencia e monitora a própria carteira.*
 
-#### 12.7 — UI de Planos e Upgrade
+- [ ] Auth de parceiros: rota `POST /api/partner/auth/login` com JWT próprio e cookie `partner_token`
+- [ ] Rota `POST /api/partner/auth/logout` e verificação de sessão
+- [ ] Middleware de proteção de rotas `/partner/*` — verifica `partner_token`
+- [ ] Layout `/partner` com sidebar próprio: Visão Geral, Meus Clientes, White Label, Relatórios, Minha Conta
+- [ ] **Dashboard do Parceiro** (`/partner`): KPIs — clientes ativos, em trial, suspensos, MRR estimado da carteira
+- [ ] **Lista de Clientes** (`/partner/clientes`): tabela com nome, plano, status, uso, data de criação, botões de ação (entrar, suspender, editar)
+- [ ] **Nova Empresa** (`/partner/clientes/novo`): formulário que provisiona novo tenant e o vincula ao parceiro automaticamente
+- [ ] **Detalhe do Cliente** (`/partner/clientes/[id]`): métricas de uso do tenant, lista de usuários, eventos recentes, botão "Entrar como" (impersonation)
+- [ ] **Impersonation pelo parceiro**: parceiro pode entrar no dashboard de um cliente para suporte, com banner de aviso "Você está visualizando como [Empresa]"
+- [ ] **White Label** (`/partner/marca`): formulário + preview (implementado na Fase 12.2)
+- [ ] **Relatórios** (`/partner/relatorios`): gráficos de crescimento de carteira, churn, receita por período
+- [ ] **Minha Conta** (`/partner/conta`): dados cadastrais do parceiro, status do contrato, percentual de comissão, histórico
+- [ ] Limite de clientes por parceiro (`max_clients`): bloqueia criação quando atingido com mensagem de upgrade
 
-- [ ] Página `/configuracoes/plano` — exibe plano atual, limites e uso em tempo real
-- [ ] Cards de planos disponíveis com features comparadas
-- [ ] Botão "Fazer Upgrade" abre modal de confirmação (em produção integraria com Stripe)
-- [ ] Histórico de mudanças de plano
+---
 
-#### 12.8 — Isolamento e Segurança Multi-tenant
+#### Fase 12.4 — Painel `/admin` Completo 🔜
+*Owner tem visão e controle de toda a operação — parceiros, clientes, planos, branding global.*
 
-- [x] Nenhuma API route acessa dados cross-tenant (cada request usa o Prisma do tenant)
-- [x] Auditoria: todas as ações sensíveis do `/admin` registradas com quem fez o quê *(tabela `SaasAuditLog` criada, log em /api/register)*
-- [ ] Backup por tenant: script de backup individual de cada `.db`
-- [ ] Rate limiting por tenant para APIs críticas
+- [ ] **Aba Parceiros** no `/admin`: lista de parceiros com status, carteira (n° clientes), MRR gerado, data de criação
+- [ ] Formulário de novo parceiro: dados cadastrais + percentual de comissão + plano de parceria + limite de clientes + branding inicial
+- [ ] Edição de parceiro: alterar dados, comissão, status, limite de clientes
+- [ ] Suspensão/reativação de parceiro com bloqueio em cascata dos clientes do parceiro (opcional, configurável)
+- [ ] Detalhe do parceiro: carteira de clientes, métricas consolidadas, histórico de auditoria
+- [ ] Impersonation de parceiro: Owner entra no portal `/partner` de qualquer parceiro para suporte
+- [ ] Impersonation de empresa: Owner entra no dashboard de qualquer cliente diretamente
+- [ ] **Branding Global** no `/admin`: configura a identidade visual padrão da plataforma (usada quando não há branding de parceiro/empresa)
+- [ ] Dashboard de métricas globais: MRR total, empresas por parceiro vs. diretas, growth mensal, churn rate
+- [ ] CRUD completo de planos com feature flags editáveis (completar o que existe)
+- [ ] Edição e exclusão de empresas (completar o que existe)
+- [ ] Troca de plano de empresa com efeito imediato
+- [ ] Log de auditoria global: todas as ações do `/admin` e `/partner` registradas em `saas_audit_logs`
+
+---
+
+#### Fase 12.5 — Registro Público e Onboarding 🔜
+*Ativa o canal de entrada para clientes diretos sem intervenção manual.*
+
+- [ ] Página pública `/register` com identidade visual da plataforma (ou do parceiro via `?partner=slug`)
+- [ ] Formulário: razão social, CNPJ, e-mail, telefone, nome do responsável, senha, confirmação de senha
+- [ ] Validações: CNPJ único, e-mail único, CNPJ válido (algoritmo), senha mínimo 8 caracteres
+- [ ] Seleção de plano na tela de registro (ou trial automático no Pro)
+- [ ] Trial de 14 dias automático após registro — provisiona banco isolado imediatamente
+- [ ] E-mail transacional de boas-vindas: nome do responsável, nome da empresa, link de acesso, período de trial
+- [ ] Banner de contagem de trial no dashboard: "X dias restantes no seu trial — Faça upgrade"
+- [ ] Wizard de onboarding no primeiro login (3 passos): **1** Conectar WhatsApp → **2** Criar primeiro agente → **3** Importar ou criar primeiro lead
+- [ ] Tela de trial expirado: bloqueia acesso ao dashboard e exibe página de upgrade (sem perder dados)
+- [ ] Tela de conta suspensa: exibe contato do suporte
+
+---
+
+#### Fase 12.6 — Billing e Monetização 🔜
+*Gera receita recorrente automaticamente. Sem essa fase, a plataforma não é comercializável.*
+
+- [ ] Definição do gateway (Asaas ou Stripe) e configuração das credenciais no banco admin
+- [ ] API `POST /api/billing/subscribe` — cria assinatura no gateway para a empresa
+- [ ] API `POST /api/billing/webhook` — recebe eventos do gateway (pagamento confirmado, inadimplência, cancelamento)
+- [ ] Ativação automática de empresa ao pagamento confirmado (status `active`)
+- [ ] Suspensão automática ao inadimplir X dias (status `suspended`) com notificação por e-mail
+- [ ] Cancelamento ao atingir deadline de inadimplência (status `cancelled`)
+- [ ] Página `/configuracoes/plano` completa: plano atual, gráficos de uso por recurso, datas de renovação, histórico de faturas
+- [ ] Cards de planos disponíveis com tabela comparativa de features
+- [ ] Fluxo de upgrade: modal de confirmação → criação de nova assinatura no gateway → atualização imediata de limites
+- [ ] Fluxo de downgrade: confirmação com aviso de perda de features → agendado para fim do ciclo atual
+- [ ] Enforcement de limites em TODAS as rotas `POST` de criação (leads, usuários, conexões, agentes)
+- [ ] Banners de aviso no dashboard quando uso ultrapassa 80% do limite de qualquer recurso
+- [ ] Registro de receita por parceiro: quanto cada parceiro gerou no período para cálculo de comissão
+- [ ] Relatório de comissões no portal do parceiro (valor gerado × percentual = comissão do período)
+- [ ] Rate limiting por tenant nas APIs para evitar abuso
 
 ---
 
@@ -410,11 +483,12 @@ Transformação do LeadFlow em uma plataforma SaaS com isolamento completo por e
 
 ### Infraestrutura
 
-- [x] Executar `prisma generate` após restart (remover todos os `as any` casts temporários)
-- [ ] Mover URL e API Key do N8N para tabela `Setting` (atualmente só lê de `process.env`)
-- [ ] Avaliar migração de SQLite para PostgreSQL para produção com múltiplos usuários
-- [ ] Deploy na Vercel / Railway / Coolify com variáveis de ambiente de produção
-- [ ] Configurar domínio personalizado
+- [x] Executar `prisma generate` após restart (remover `as any` casts temporários)
+- [ ] Mover URL e API Key do N8N para tabela `Setting` (atualmente lê de `process.env`)
+- [ ] Deploy em Railway / Coolify / VPS com variáveis de ambiente de produção
+- [ ] Script de backup automático por tenant (backup dos arquivos `.db` individualmente)
+- [ ] Rate limiting global (next.js middleware ou upstash rate-limit)
+- [ ] Monitoramento de erros em produção (Sentry ou equivalente)
 
 ### UX / Interface
 
@@ -424,6 +498,12 @@ Transformação do LeadFlow em uma plataforma SaaS com isolamento completo por e
 - [ ] Exportação de leads e relatórios em CSV/PDF
 - [ ] Notificações push no browser (Web Push API)
 - [ ] Versão mobile responsiva do chat WhatsApp
+- [ ] Player de áudio inline no chat para ouvir respostas do agente (Fase 8.5 pendente)
+
+### Calendário e Agendamento
+
+- [ ] Date picker com identidade visual da plataforma na página de Leads (filtro por data)
+- [ ] Filtros de calendário por agenda (múltiplos calendários Google) na Agenda
 
 ---
 
@@ -442,8 +522,13 @@ Transformação do LeadFlow em uma plataforma SaaS com isolamento completo por e
 | Google Calendar e Agendamento | v1.4.0 | ✅ Concluído | 100% |
 | Página de Agenda | v1.4.0 | ✅ Concluído | 100% |
 | Conversão Lead → Cliente + Webhook | v1.5.0 | ✅ Concluído | 100% |
-| SaaS Multi-tenant | v2.0.0 | 🔜 Planejado | 0% |
-| Melhorias Técnicas | — | 🔜 Planejado | 0% |
+| 12.1 — Fundação e Correções | v2.0.0 | 🔜 Pendente | 0% |
+| 12.2 — White Label Engine | v2.0.0 | 🔜 Pendente | 0% |
+| 12.3 — Portal do Parceiro | v2.0.0 | 🔜 Pendente | 0% |
+| 12.4 — Admin Panel Completo | v2.0.0 | 🔜 Pendente | 0% |
+| 12.5 — Registro e Onboarding | v2.0.0 | 🔜 Pendente | 0% |
+| 12.6 — Billing e Monetização | v2.0.0 | 🔜 Pendente | 0% |
+| Melhorias Técnicas | — | 🔜 Pendente | 0% |
 
 ---
 
@@ -464,13 +549,32 @@ Transformação do LeadFlow em uma plataforma SaaS com isolamento completo por e
 - [x] Relatórios com gráficos de performance
 - [x] Notificações em tempo real
 - [x] Tags, LGPD, webhooks e logs de auditoria
-- [x] Sistema de Agentes IA (RAG, orquestração, voz)
+- [x] Sistema de Agentes IA (RAG, orquestração, voz, aprendizado dinâmico)
 - [x] Google Calendar integrado com agendamento automático por IA (SaaS-ready, credenciais por empresa)
 - [x] Página de Agenda com views mês/semana/lista, criação manual e painel de detalhes
-- [x] Conversão Lead → Cliente com webhook enriquecido (notas + análise IA) para integração com CRMs externos
-- [ ] SaaS Multi-tenant: isolamento por empresa, planos, feature flags, painel /admin
-- [ ] Deploy em produção
+- [x] Conversão Lead → Cliente com webhook enriquecido para integração com CRMs externos
+- [ ] **[12.1]** Fundação SaaS: schema expandido, auth 4 roles, bug de isolamento corrigido
+- [ ] **[12.2]** White label por parceiro: logo, cores, nome, branding dinâmico na UI
+- [ ] **[12.3]** Portal do Parceiro: gestão autônoma de carteira, onboarding de clientes, relatórios comerciais
+- [ ] **[12.4]** Admin completo: gestão de parceiros, impersonation, métricas globais, branding da plataforma
+- [ ] **[12.5]** Registro público: `/register`, wizard de onboarding, trial, e-mail de boas-vindas
+- [ ] **[12.6]** Billing: assinatura recorrente, enforcement de limites, upgrade/downgrade, comissões de parceiros
+- [ ] Deploy em produção com backup automático e monitoramento
 
 ---
 
-*Atualizado em Abril/2026 — v1.5.0 — Fase 11 concluída: Conversão Lead → Cliente + Webhook CRM | Fase 12 planejada: SaaS Multi-tenant (SQLite por tenant, login resolve tenant, painel /admin, planos com limites e feature flags)*
+## PENDÊNCIAS DE DECISÃO DO OWNER
+
+Itens que precisam de definição antes da implementação das fases correspondentes:
+
+| Decisão | Impacta | Opções |
+|---|---|---|
+| Gateway de pagamento | Fase 12.6 | **Asaas** (PIX/boleto/cartão BR) ou **Stripe** (cartão + internacional) |
+| Storage de logos | Fase 12.2 | **Local** (`public/uploads/`) para MVP ou **Cloudflare R2** desde o início |
+| Domínio customizado por parceiro | Pós-MVP | Incluir no MVP ou implementar após primeiro parceiro ativo |
+| Modelo de comissão com parceiros | Fase 12.6 | **Repasse %** (parceiro recebe X% do que clientes pagam) / **Margem** (parceiro define preço) / **Fee fixo** (mensalidade pelo portal) |
+| Preços dos planos | Fase 12.5/F | Starter R$29, Pro R$99, Enterprise R$299 — confirmar valores |
+
+---
+
+*Atualizado em Abril/2026 — v1.5.0 → v2.0.0 | Produto CRM concluído (v1.5) | Fase 12 planejada: SaaS comercial com 4 níveis hierárquicos, white label por parceiro, portal de revendedor, billing recorrente e painel admin completo*

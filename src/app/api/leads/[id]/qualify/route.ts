@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { qualifyLead } from "@/lib/openai"
 
 // POST /api/leads/:id/qualify - Qualificar lead com IA
@@ -7,6 +7,7 @@ export async function POST(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const prisma = await getPrismaFromRequest(_request)
   try {
     const lead = await prisma.lead.findUnique({
       where: { id: params.id },

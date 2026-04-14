@@ -9,7 +9,8 @@ import {
   getEventsForRange,
 } from "@/lib/calendar-service"
 import { scheduleEventReminders, cancelEventReminders } from "@/lib/reminder-service"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
+import { prisma as defaultPrisma } from "@/lib/prisma"
 
 export const dynamic = "force-dynamic"
 
@@ -21,6 +22,7 @@ async function getUser(req: NextRequest) {
 
 // GET /api/integrations/calendar/events?leadId=&conversationId=&upcoming=true&timeMin=&timeMax=
 export async function GET(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   const payload = await getUser(req)
   if (!payload) return NextResponse.json({ success: false, error: "Não autenticado" }, { status: 401 })
 
@@ -55,6 +57,7 @@ export async function GET(req: NextRequest) {
 
 // POST /api/integrations/calendar/events — criar evento
 export async function POST(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   const payload = await getUser(req)
   if (!payload) return NextResponse.json({ success: false, error: "Não autenticado" }, { status: 401 })
 
@@ -109,6 +112,7 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/integrations/calendar/events — editar evento
 export async function PATCH(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   const payload = await getUser(req)
   if (!payload) return NextResponse.json({ success: false, error: "Não autenticado" }, { status: 401 })
 
@@ -130,6 +134,7 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/integrations/calendar/events?googleEventId=xxx
 export async function DELETE(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   const payload = await getUser(req)
   if (!payload) return NextResponse.json({ success: false, error: "Não autenticado" }, { status: 401 })
 

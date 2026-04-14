@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { sendTextMessage } from "@/lib/baileys-sender"
 
 function formatJid(phone: string): string {
@@ -13,6 +13,7 @@ function formatJid(phone: string): string {
 
 // POST /api/whatsapp/send - Enviar mensagem via WhatsApp (Baileys)
 export async function POST(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const body = await request.json()
     const { leadId, message, templateId, quotedMsgId, quotedFromMe, quotedContent, quotedMsgType, connectionId } = body as {

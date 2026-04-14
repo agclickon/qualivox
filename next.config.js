@@ -9,7 +9,9 @@ const nextConfig = {
     ],
   },
   // Impede o webpack de empacotar módulos Node.js que acessam o filesystem
-  serverExternalPackages: ["pdf-parse", "sharp"],
+  experimental: {
+    serverComponentsExternalPackages: ["pdf-parse", "sharp"],
+  },
 }
 
 module.exports = nextConfig

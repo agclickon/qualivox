@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/automations - Listar automações
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const automations = await prisma.automation.findMany({
       orderBy: { createdAt: "desc" },
@@ -23,6 +24,7 @@ export async function GET() {
 
 // POST /api/automations - Criar automação
 export async function POST(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const body = await request.json()
     const { name, description, trigger, actions } = body

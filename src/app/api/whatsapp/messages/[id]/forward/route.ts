@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { getSession } from "@/lib/baileys-session"
 
 export const dynamic = "force-dynamic"
@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic"
 // POST /api/whatsapp/messages/[id]/forward
 // Body: { targetLeadId } — forward to another lead's conversation
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const { targetLeadId } = await req.json() as { targetLeadId?: string }
     if (!targetLeadId) return NextResponse.json({ success: false, error: "targetLeadId obrigatório" }, { status: 400 })

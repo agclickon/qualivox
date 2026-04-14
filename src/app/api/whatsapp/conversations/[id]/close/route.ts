@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 import { triggerLearningForConversation } from "@/lib/agent-learner"
 
 // POST /api/whatsapp/conversations/[id]/close
 // Fecha/resolve a conversa e dispara aprendizado se configurado
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(req)
   try {
     const conversationId = params.id
 

@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/agents/[id]/knowledge/stats
 // Retorna estatísticas de conhecimento do agente
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+  const prisma = await getPrismaFromRequest(_req)
   try {
     const agentId = params.id
 

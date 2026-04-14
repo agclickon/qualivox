@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { getPrismaFromRequest } from "@/lib/prisma-tenant"
 
 // GET /api/lgpd/consent?leadId=xxx - Listar consentimentos de um lead
 export async function GET(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const { searchParams } = new URL(request.url)
     const leadId = searchParams.get("leadId")
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
 
 // POST /api/lgpd/consent - Registrar consentimento LGPD
 export async function POST(request: NextRequest) {
+  const prisma = await getPrismaFromRequest(request)
   try {
     const body = await request.json()
     const { leadId, consentType, granted } = body
