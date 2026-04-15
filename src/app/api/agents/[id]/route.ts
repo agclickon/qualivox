@@ -23,9 +23,9 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
   }
 }
 
-// PATCH - v5 final
+// PATCH agent update
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  console.log("[PATCH Agent] v5 - ID:", params.id)
+  console.log("[Agent] Updating ID:", params.id)
   const prisma = await getPrismaFromRequest(req)
   const userRole = req.headers.get("x-user-role")
 
